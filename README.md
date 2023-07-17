@@ -1,6 +1,4 @@
-# inventario
-
-<img height="128" src="data/icons/hicolor/scalable/apps/io.github.nokse22.teleprompter.svg" align="left"/>
+<img height="128" src="data/icons/hicolor/scalable/apps/io.github.nokse22.inventario.svg" align="left"/>
 
 # Inventario 
   
