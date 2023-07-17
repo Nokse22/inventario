@@ -1,6 +1,6 @@
 # main.py
 #
-# Copyright 2023 Lorenzo
+# Copyright 2023 Nokse
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -56,8 +56,8 @@ class InventarioApplication(Adw.Application):
                                 developer_name='Nokse',
                                 issue_url="www.github.com/nokse22.inventario",
                                 version='0.1.0',
-                                developers=['Lorenzo'],
-                                copyright='© 2023 Lorenzo')
+                                developers=['Nokse'],
+                                copyright='© 2023 Nokse')
         about.present()
 
     def on_preferences_action(self, widget, _):
