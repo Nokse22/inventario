@@ -1,0 +1,6 @@
+data/io.github.nokse22.inventario.desktop.in
+data/io.github.nokse22.inventario.appdata.xml.in
+data/io.github.nokse22.inventario.gschema.xml
+src/main.py
+src/window.py
+src/window.ui

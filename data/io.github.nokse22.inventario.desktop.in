@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=inventario
+Exec=inventario
+Icon=io.github.nokse22.inventario
+Terminal=false
+Type=Application
+Categories=GTK;
+StartupNotify=true
