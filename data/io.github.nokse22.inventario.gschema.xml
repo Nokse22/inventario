@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="inventario">
 	<schema id="io.github.nokse22.inventario" path="/io/github/nokse22/inventario/">
+	  <key name="items" type="i">
+      <default>0</default>
+    </key>
 	</schema>
 </schemalist>
