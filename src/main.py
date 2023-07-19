@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import sys
-import gi
+import gi, os
 
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
@@ -37,16 +37,22 @@ class InventarioApplication(Adw.Application):
         self.create_action('about', self.on_about_action)
         self.create_action('preferences', self.on_preferences_action)
 
+        self.create_action('new-inventory', self.on_preferences_action)
+        self.create_action('save', self.on_preferences_action)
+        self.create_action('save-as', self.on_preferences_action)
+        self.create_action('import', self.win.show_file_chooser_dialog)
+        self.create_action('open-inventory', self.on_preferences_action)
+
     def do_activate(self):
         """Called when the application is activated.
 
         We raise the application's main window, creating it if
         necessary.
         """
-        win = self.props.active_window
-        if not win:
-            win = InventarioWindow(application=self)
-        win.present()
+        self.win = self.props.active_window
+        if not self.win:
+            self.win = InventarioWindow(application=self)
+        self.win.present()
 
     def on_about_action(self, widget, _):
         """Callback for the app.about action."""
@@ -69,7 +75,23 @@ class InventarioApplication(Adw.Application):
         settingsPage.set_icon_name("applications-system-symbolic")
         pref.add(settingsPage)
 
+        self.general_group = Adw.PreferencesGroup(title=("General settings"))
+        settingsPage.add(self.general_group)
+
+        row = Adw.ActionRow(title=("Remember window size"))
+        switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        row.add_suffix(switch)
+        self.win.settings.bind("window-save", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
+        self.general_group.add(row)
+
         pref.present()
+
+    def boolean_row(self, name, value, callback):
+        row = Adw.ActionRow(title=name)
+        rowSwitch = Gtk.Switch(valign = Gtk.Align.CENTER)
+        rowSwitch.set_active(value)
+        row.add_suffix(rowSwitch)
+        return row
 
     def create_action(self, name, callback, shortcuts=None):
         """Add an application action.
@@ -86,6 +108,15 @@ class InventarioApplication(Adw.Application):
         if shortcuts:
             self.set_accels_for_action(f"app.{name}", shortcuts)
 
+    def do_shutdown(self):
+        os.chdir(os.path.expanduser("~"))
+        # with open(self.win.path + self.win.filename, 'wb') as f:
+        #     pickle.dump(self.win.chats, f)
+        settings = Gio.Settings.new('io.github.nokse22.inventario')
+        settings.set_int("last-page", self.win.last_page)
+        settings.set_int("item-selected", self.win.selected_item)
+        #self.win.stream_number_variable += 1
+        Gtk.Application.do_shutdown(self)
 
 def main(version):
     """The application's entry point."""

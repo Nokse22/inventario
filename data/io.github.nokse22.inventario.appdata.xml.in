@@ -4,6 +4,36 @@
 	<metadata_license>CC0-1.0</metadata_license>
 	<project_license>GPL-3.0-or-later</project_license>
 	<description>
-	  <p>No description</p>
+	  <p>An app to keep track of your inventory, it can import from a CSV.</p>
 	</description>
+
+  <summary>Keep track of your inventory</summary>
+
+	<content_rating type="oars-1.0">
+  </content_rating>
+
+  <recommends>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </recommends>
+
+  <launchable type="desktop-id">io.github.nokse22.inventario.desktop</launchable>
+
+  <url type="homepage">https://github.com/Nokse22/inventario</url>
+  <url type="bugtracker">https://github.com/Nokse22/inventario/issues</url>
+
+  <categories>
+    <category>Utility</category>
+  </categories>
+
+	<screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/Nokse22/inventario/main/data/resources/Screenshot%201.png</image>
+    </screenshot>
+
+	  <screenshot>
+	    <image>https://raw.githubusercontent.com/Nokse22/inventario/main/data/resources/Screenshot%202.png</image>
+	  </screenshot>
+  </screenshots>
+
 </component>

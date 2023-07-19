@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="inventario">
 	<schema id="io.github.nokse22.inventario" path="/io/github/nokse22/inventario/">
-	  <key name="items" type="i">
+	  <key name="last-page" type="i">
+      <default>1</default>
+    </key>
+	  <key name="item-selected" type="i">
       <default>0</default>
+    </key>
+	  <key name="window-save" type="b">
+      <default>true</default>
+    </key>
+	  <key name="window-width" type="i">
+      <default>1000</default>
+    </key>
+	  <key name="window-height" type="i">
+      <default>700</default>
     </key>
 	</schema>
 </schemalist>
