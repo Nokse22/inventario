@@ -110,6 +110,11 @@ class InventarioApplication(Adw.Application):
         self.win.settings.bind("open-last-on-start", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
         self.general_group.add(row)
 
+        row = Adw.ActionRow(title=("Enable horizontal scrolling"))
+        switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        row.add_suffix(switch)
+        self.win.settings.bind("enable-horizontal-scrolling", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
+        self.general_group.add(row)
 
         pref.present()
 
