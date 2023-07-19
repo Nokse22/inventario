@@ -156,10 +156,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         sidebar_page.set_child(sidebar_box)
 
         sidebar_headerbar = Adw.HeaderBar(css_classes=["flat"])
-        #self.open_file_button = Gtk.MenuButton(icon_name="document-open-symbolic")
-        #self.open_file_button.connect("clicked", self.show_file_chooser_dialog)
-        # open_file_button_popover = Gtk.Popover(halign=Gtk.Align.START,
-        #        has_arrow=True, width_request=200)
         open_file_button = Gtk.MenuButton()
         adw_open_button_content = Adw.ButtonContent(icon_name="document-open-symbolic", label="Open")
         open_file_button.set_child(adw_open_button_content)
@@ -288,7 +284,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         self.show_dashboard()
 
-        self.cv = Gtk.ColumnView(single_click_activate=True, reorderable=True,
+        self.cv = Gtk.ColumnView(single_click_activate=False, reorderable=True,
                 show_row_separators=True, css_classes=["flat"])
         tree_model = Gtk.TreeListModel.new(self.model, False, True, self.model_func)
         tree_sorter = Gtk.TreeListRowSorter.new(self.cv.get_sorter())
@@ -310,16 +306,20 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.open_inventory_file(path)
 
         column_visibility_popover_box = Gtk.Box(orientation=1)
+        self.column_visibility_check_buttons = []
         for i, column in enumerate(self.cv.get_columns()):
             title = column.get_title()
             box = Gtk.Box(orientation=0)
             box.append(Gtk.Label(label=title, hexpand=True, xalign=0, margin_end=10))
             print(column.get_visible())
             check_button = Gtk.CheckButton(active = column.get_visible())
+            self.column_visibility_check_buttons.append(check_button)
             check_button.connect("toggled", self.on_check_button_toggled, column)
             box.append(check_button)
             column_visibility_popover_box.append(box)
         column_visibility_popover.set_child(column_visibility_popover_box)
+
+        print(self.settings.get_string("last-inventory-path"))
 
     def open_inventory_file(self, file_path):
         try:
@@ -348,6 +348,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                             else:
                                 self.cv.get_columns()[i].set_visible(False)
                                 print(self.cv.get_columns()[i].get_title())
+                                self.column_visibility_check_buttons[i].set_active(False)
                 else:
                     new_item = Item()
                     for index, value in enumerate(row):
@@ -370,23 +371,72 @@ class InventarioWindow(Adw.ApplicationWindow):
                                 # Handle any conversion errors
                                 pass
                     self.model.append(new_item)
-
             toast = Adw.Toast()
             toast.set_title("File successfully opened")
             toast.set_timeout(1)
             self.toast_overlay.add_toast(toast)
 
     def save_inventory_file(self, file_path):
+        print(file_path)
+        if file_path == "":
+            self.save_inventory_file_as()
+            return
         with open(file_path, 'w', newline='\n') as csvfile:
             writer = csv.writer(csvfile)
-
-            item_row = [self.cv.get_columns()[index].get_visible() for index in range(len(self.details_names))]
-            print(item_row)
-            writer.writerow(item_row)
+            column_view_row = [self.cv.get_columns()[index].get_visible() for index in range(len(self.details_names))]
+            writer.writerow(column_view_row)
 
             for item in self.model:
                 item_row = [item.details_all[index] for index in range(len(self.details_names))]
                 writer.writerow(item_row)
+        toast = Adw.Toast()
+        toast.set_title("File saved")
+        toast.set_timeout(1)
+        self.toast_overlay.add_toast(toast)
+
+        print("file saved")
+        self.settings.set_string("last-inventory-path", file_path)
+
+    def on_save_file_path_selected(self, dialog, responce, dialog_parent):
+        print(responce)
+        if responce == Gtk.ResponseType.CANCEL:
+            dialog.destroy()
+            print("destroy")
+        if responce == Gtk.ResponseType.ACCEPT:
+            print("sure")
+            dialog = Gtk.MessageDialog(
+                parent=self,
+                buttons=Gtk.ButtonsType.NONE
+            )
+            dialog.set_title("title")
+
+            dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+            dialog.add_button("Replace", Gtk.ResponseType.OK)
+
+            dialog.connect("response", self.replace_file_dialog_responce, dialog_parent)
+            dialog.present()
+
+    def replace_file_dialog_responce(self, dialog, responce, dialog_parent):
+        if responce == Gtk.ResponseType.CANCEL:
+            dialog.destroy()
+        if responce == Gtk.ResponseType.OK:
+            self.save_inventory_file(dialog_parent.get_file().get_path())
+            dialog.destroy()
+
+
+    def save_inventory_file_as(self):
+        dialog = Gtk.FileChooserNative(
+            title="Save File As",
+            transient_for=None,
+            action=Gtk.FileChooserAction.OPEN
+        )
+
+        dialog.set_accept_label("Save")
+        dialog.set_cancel_label("Cancel")
+
+        response = dialog.show()
+
+        dialog.connect("response", self.on_save_file_path_selected, dialog)
 
     def on_delete_item_button_clicked(self, btn):
         pass
@@ -395,7 +445,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         column.set_visible(check.get_active())
 
     def on_file_selected(self, dialog, response):
-        if response == -3:
+        if response == Gtk.ResponseType.ACCEPT:
             selected_file = dialog.get_file()
             if selected_file:
                 file_path = selected_file.get_path()
@@ -412,20 +462,17 @@ class InventarioWindow(Adw.ApplicationWindow):
                         file_contents = file.read()
                         file_extension = os.path.splitext(file_path)[1]
                         dialog.destroy()
-                        toast = Adw.Toast()
-                        toast.set_title("File successfully opened")
-                        toast.set_timeout(1)
-                        self.toast_overlay.add_toast(toast)
 
                         if file_extension == ".csv":
                             self.read_csv(file_contents)
                         if file_extension == ".json":
                             self.read_json(file_contents)
+                        if file_extension == ".inve":
+                            self.open_inventory_file(file_path)
         else:
             dialog.destroy()
 
-    def show_file_chooser_dialog(self, btn=None):
-
+    def open_file_chooser(self, btn=None):
         dialog = Gtk.FileChooserNative(
             title="Open File",
             transient_for=None,
@@ -435,7 +482,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         dialog.set_accept_label("Open")
         dialog.set_cancel_label("Cancel")
 
-        # Show the dialog and get the response
         response = dialog.show()
 
         dialog.connect("response", self.on_file_selected)
@@ -580,7 +626,10 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     def on_remove_one_item_button_clicked(self, btn):
         item = self.get_item_by_id(btn.get_name())
-        item.details_all[2] -= 1
+        item.details_all[3] -= 1
+
+        item.details_all[10] = self.get_formatted_date()
+
         self.on_column_view_activated(self.cv, self.selected_item)
 
     def get_item_by_id(self, item_id):

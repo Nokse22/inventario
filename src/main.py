@@ -40,24 +40,27 @@ class InventarioApplication(Adw.Application):
         self.create_action('new-inventory', self.on_new_inventory_action)
         self.create_action('save', self.on_save_action)
         self.create_action('save-as', self.on_save_as_action)
-        self.create_action('import', self.on_import_action)
+        #self.create_action('import', self.on_import_action)
         self.create_action('open-inventory', self.on_open_inventory_action)
 
     def on_new_inventory_action(self, widget, _):
-        self.win.show_file_chooser_dialog()
+        path = self.win.settings.get_string("last-inventory-path")
+        self.win.save_inventory_file(path)
+        self.win.model.remove_all()
+        self.win.settings.set_string("last-inventory-path", "")
 
-    def on_save_action(self, widget, _):
+    def on_save_action(self, widget=None, _=None):
         path = self.win.settings.get_string("last-inventory-path")
         self.win.save_inventory_file(path)
 
     def on_save_as_action(self, widget, _):
-        self.win.show_file_chooser_dialog()
+        self.win.save_inventory_file_as()
 
     def on_import_action(self, widget, _):
-        self.win.show_file_chooser_dialog()
+        pass
 
     def on_open_inventory_action(self, widget, _):
-        self.win.show_file_chooser_dialog()
+        self.win.open_file_chooser()
 
 
     def do_activate(self):
@@ -101,6 +104,13 @@ class InventarioApplication(Adw.Application):
         self.win.settings.bind("window-save", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
         self.general_group.add(row)
 
+        row = Adw.ActionRow(title=("Open last inventory on startup"))
+        switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        row.add_suffix(switch)
+        self.win.settings.bind("open-last-on-start", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
+        self.general_group.add(row)
+
+
         pref.present()
 
     def boolean_row(self, name, value, callback):
@@ -127,12 +137,10 @@ class InventarioApplication(Adw.Application):
 
     def do_shutdown(self):
         os.chdir(os.path.expanduser("~"))
-        # with open(self.win.path + self.win.filename, 'wb') as f:
-        #     pickle.dump(self.win.chats, f)
         settings = Gio.Settings.new('io.github.nokse22.inventario')
         settings.set_int("last-page", self.win.last_page)
         settings.set_int("item-selected", self.win.selected_item)
-        #self.win.stream_number_variable += 1
+        self.on_save_action()
         Gtk.Application.do_shutdown(self)
 
 def main(version):
