@@ -37,11 +37,28 @@ class InventarioApplication(Adw.Application):
         self.create_action('about', self.on_about_action)
         self.create_action('preferences', self.on_preferences_action)
 
-        self.create_action('new-inventory', self.on_preferences_action)
-        self.create_action('save', self.on_preferences_action)
-        self.create_action('save-as', self.on_preferences_action)
-        self.create_action('import', self.win.show_file_chooser_dialog)
-        self.create_action('open-inventory', self.on_preferences_action)
+        self.create_action('new-inventory', self.on_new_inventory_action)
+        self.create_action('save', self.on_save_action)
+        self.create_action('save-as', self.on_save_as_action)
+        self.create_action('import', self.on_import_action)
+        self.create_action('open-inventory', self.on_open_inventory_action)
+
+    def on_new_inventory_action(self, widget, _):
+        self.win.show_file_chooser_dialog()
+
+    def on_save_action(self, widget, _):
+        path = self.win.settings.get_string("last-inventory-path")
+        self.win.save_inventory_file(path)
+
+    def on_save_as_action(self, widget, _):
+        self.win.show_file_chooser_dialog()
+
+    def on_import_action(self, widget, _):
+        self.win.show_file_chooser_dialog()
+
+    def on_open_inventory_action(self, widget, _):
+        self.win.show_file_chooser_dialog()
+
 
     def do_activate(self):
         """Called when the application is activated.
