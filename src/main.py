@@ -79,6 +79,8 @@ class InventarioApplication(Adw.Application):
             self.win = InventarioWindow(application=self)
         self.win.present()
 
+        self.win.open_file_on_startup()
+
     def on_about_action(self, widget, _):
         """Callback for the app.about action."""
         about = Adw.AboutWindow(transient_for=self.props.active_window,
