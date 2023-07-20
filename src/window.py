@@ -26,11 +26,12 @@ import random
 import csv
 import gettext
 import locale
+import threading
 from os import path
 from os.path import abspath, dirname, join, realpath
 import os
 import inspect
-
+import time
 
 class Item(GObject.Object):
     __gtype_name__ = "Item"
@@ -159,7 +160,7 @@ class Item(GObject.Object):
 class InventarioWindow(Adw.ApplicationWindow):
     __gtype_name__ = 'InventarioWindow'
 
-    sidebar_options = ["Dashboard", "Items"]
+    sidebar_options = ["Dashboard", "Items", "Invoice", "Products"]
 
     # TO ADD A NEW CATEGORY:
     # add a new entry in the following array like: ["Column name", "Item function to retrieve the value", "type"]
@@ -185,7 +186,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                     ["ID", "item_id", "STR"],
                     ["Category","item_category", "str"],
                     ["Name","item_name", "str"],
-                    ["Quantity", "item_quantity", "int"],
+                    ["Stock", "item_quantity", "int"],
                     ["Package", "item_package", "str"],
                     ["Price", "item_cost", "cost"],
                     ["Value", "item_value", "value"],
@@ -292,7 +293,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.title_label = Gtk.Label(label="Title", css_classes=["title-4"])
         title_box.append(self.title_label)
 
-        self.subtitle_label = Gtk.Label(label="subtitle", css_classes=["caption"])
+        self.subtitle_label = Gtk.Label(label="subtitle", css_classes=["caption"], opacity=0.6)
         title_box.append(self.subtitle_label)
 
         content_headerbar = Gtk.HeaderBar(css_classes=["flat"], title_widget=title_box)
@@ -358,7 +359,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         sidebar_box.append(sidebar_scrolled_window)
         sidebar_scrolled_window.set_child(self.sidebar_navigation_listBox)
 
-        self.item_info_revealer = Gtk.Revealer(transition_type=1)
+        self.item_info_revealer = Gtk.Revealer(transition_type=1, height_request=300)
         sidebar_box.append(self.item_info_revealer)
 
         self.model = Gio.ListStore(item_type=Item)
@@ -409,10 +410,25 @@ class InventarioWindow(Adw.ApplicationWindow):
             column_visibility_popover_box.append(box)
         column_visibility_popover.set_child(column_visibility_popover_box)
 
+        # if self.settings.get_boolean("open-last-on-start"):
+        #     path = self.settings.get_string("last-inventory-path")
+        #     self.read_inventory_file(path)
+            #threading.Thread(target=self.read_inventory_file, args=[path]).start()
+
+        #self.update_sidebar_item_info()
+
+    def new_factory(self, detail):
+        factory = Gtk.SignalListItemFactory()
+        factory.connect("setup", self._on_factory_setup)
+        factory.connect("bind", self._on_factory_bind, detail)
+        factory.connect("unbind", self._on_factory_unbind, detail)
+        factory.connect("teardown", self._on_factory_teardown)
+        return factory
+
+    def open_file_on_startup(self):
         if self.settings.get_boolean("open-last-on-start"):
             path = self.settings.get_string("last-inventory-path")
             self.read_inventory_file(path)
-
         self.update_sidebar_item_info()
 
     def on_selection_changed(self, selection_model, pos, row):
@@ -420,6 +436,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.update_sidebar_item_info()
 
     def read_inventory_file(self, file_path):
+        time.sleep(1)
         file_extension = os.path.splitext(file_path)[1]
         self.model.remove_all()
         if file_path == "":
@@ -679,6 +696,75 @@ class InventarioWindow(Adw.ApplicationWindow):
     def search_item(self, btn):
         self.search_revealer.set_reveal_child(not self.search_revealer.get_reveal_child())
 
+    def on_add_stock_to_item_button_clicked(self, btn):
+        print("on_add_stock_to_item_button_clicked")
+        item_index = self.selected_item
+        if item_index < len(self.model):
+            item = self.model[item_index]
+        else:
+            return
+
+        #item = self.get_item_by_id(btn.get_name())
+        #self.on_column_view_activated(self.cv, self.selected_item)
+
+        add_item_window = Adw.Window(resizable=False)
+        item_name = item.item_name
+        if item_name != None:
+            add_item_window.set_title("Add stock to " + item_name + " " + item.item_id)
+        else:
+            add_item_window.set_title("Add stock to " + item.item_id)
+        add_item_window.set_default_size(400, 500)
+        add_item_window.set_modal(True)
+        add_item_window.set_transient_for(self)
+        box = Gtk.Box(orientation=1, vexpand=True)
+        box.append(Adw.HeaderBar(css_classes=["flat"]))
+        list_box_add = Gtk.ListBox(selection_mode = 0, margin_start=6, margin_end=6,
+                css_classes=["card"], vexpand=True)
+        box.append(list_box_add)
+
+        box3 = Gtk.Box(spacing=6, margin_start=6, margin_end=6, homogeneous=True)
+        cancel_button = Gtk.Button(label=_("Cancel"), hexpand=True, margin_top=6, margin_bottom=6)
+        cancel_button.connect("clicked", self.quit_window, add_item_window)
+        add_button = Gtk.Button(label=_("Edit"), hexpand=True, margin_top=6, margin_bottom=6, css_classes=["suggested-action"])
+        add_button.connect("clicked", self.edit_existing_item, list_box_add, item, add_item_window)
+
+        box3.append(cancel_button)
+        box3.append(add_button)
+        box.append(box3)
+
+        for i in range(len(self.details_names)):
+            value = item.get_detail(self.details_names[i][1])
+            add_row = True
+            box2 = Gtk.Box(homogeneous=True)
+            box2.append(Gtk.Label(label=self.details_names[i][0], margin_start=6, xalign=0,
+                        hexpand=True))
+            if self.details_names[i][2] == "str":
+                add_row = False
+            if self.details_names[i][2] == "STR":
+                box2.append(Gtk.Label(label=value, hexpand=True, margin_end=4, margin_top=4,
+                        margin_bottom=4, xalign=0))
+            if self.details_names[i][2] == "int":
+                spin_button = Gtk.SpinButton(climb_rate=1, hexpand=True, margin_end=4, margin_top=4, margin_bottom=4)
+                spin_button.set_adjustment(Gtk.Adjustment(step_increment=1, lower=0, value=0, upper=100000000))
+                box2.append(spin_button)
+                if value != None:
+                    spin_button.set_value(float(value))
+            if self.details_names[i][2] == "cost":
+                add_row = False
+            if self.details_names[i][2] == "DATE":
+                add_row = False
+            if self.details_names[i][2] == "date":
+                box2.append(Gtk.Label(label=self.get_formatted_date(), hexpand=True, margin_end=4, margin_top=4,
+                        margin_bottom=4, xalign=0))
+            if self.details_names[i][2] == "value":
+                add_row = False
+            if add_row:
+                list_box_add.append(box2)
+
+        add_item_window.set_content(box)
+        add_item_window.present()
+
+
     def update_sidebar_item_info(self):
         item_index = self.selected_item
         if item_index == None:
@@ -692,7 +778,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         if item_index > len(self.model):
             item_index = 0
         self.selected_item = item_index
-        self.sidebar_item_info_list_box = Gtk.ListBox(show_separators=False, selection_mode=0,
+        self.sidebar_item_info_list_box = Gtk.ListBox(show_separators=True, selection_mode=0,
                 margin_start=6, margin_end=6, margin_top=6, margin_bottom=6, vexpand=True)
         box1 = Gtk.Box(orientation=1, css_classes=["card"],
                 margin_start=6, margin_end=6, margin_top=6, margin_bottom=6)
@@ -705,13 +791,17 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         item_id=self.model[item_index].item_id
 
-        add_this_button = Gtk.Button(hexpand=True, label="Edit", css_classes=["success"])
-        remove_this_button = Gtk.Button(hexpand=True, label="-1", css_classes=["error"], name=item_id)
+        add_this_button = Gtk.Button(hexpand=True, label="Add", css_classes=["success"])
+        remove_this_button = Gtk.Button(hexpand=True, label="-1", css_classes=["error"])
+        edit_button = Gtk.Button(icon_name="document-edit-symbolic", hexpand=True)
+
         box2 = Gtk.Box(homogeneous=True, margin_start=6, margin_end=6, margin_top=6, margin_bottom=6, hexpand=True, spacing=6)
+        box2.append(edit_button)
         box2.append(add_this_button)
         box2.append(remove_this_button)
 
-        add_this_button.connect("clicked", self.on_add_to_existing_item_button_clicked)
+        edit_button.connect("clicked", self.show_edit_item_dialog)
+        add_this_button.connect("clicked", self.on_add_stock_to_item_button_clicked)
         remove_this_button.connect("clicked", self.on_remove_one_item_button_clicked)
 
         box1.append(box2)
@@ -721,7 +811,8 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.item_info_revealer.set_reveal_child(True)
 
         for i in range(len(self.details_names)):
-            box = Gtk.Box(margin_start=6, margin_end=6)
+            box = Gtk.FlowBox(margin_start=6, margin_end=6, max_children_per_line=2,
+                    selection_mode=Gtk.SelectionMode.NONE)
             name = self.details_names[i][0] + ":"
             box.append(Gtk.Label(ellipsize=2, label=name, xalign=0, hexpand=True, margin_end=6))
 
@@ -736,19 +827,19 @@ class InventarioWindow(Adw.ApplicationWindow):
                 text = value
             if text == "" or text == None:
                 text = "..."
-            box.append(Gtk.Label(label=text, xalign=1, hexpand=True))
+            box.append(Gtk.Label(label=text, xalign=1, hexpand=True, halign=Gtk.Align.FILL))
             self.sidebar_item_info_list_box.append(box)
 
     def on_column_view_activated(self, cv, row):
-        self.on_add_to_existing_item_button_clicked(None, )
+        self.show_edit_item_dialog(None, )
 
-    def on_add_to_existing_item_button_clicked(self, btn):
+    def show_edit_item_dialog(self, btn=None):
+        print("show_edit_item_dialog")
         item_index = self.selected_item
         if item_index < len(self.model):
             item = self.model[item_index]
         else:
             return
-        print(len(self.model))
 
         #item = self.get_item_by_id(btn.get_name())
         #self.on_column_view_activated(self.cv, self.selected_item)
@@ -783,7 +874,6 @@ class InventarioWindow(Adw.ApplicationWindow):
             box2.append(Gtk.Label(label=self.details_names[i][0], margin_start=6, xalign=0,
                     hexpand=True))
             value = item.get_detail(self.details_names[i][1])
-            print(value)
             if self.details_names[i][2] == "str":
                 entry = Gtk.Entry(placeholder_text=_("Write here"),hexpand=True, margin_end=4, margin_top=4, margin_bottom=4)
                 box2.append(entry)
@@ -824,6 +914,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         add_item_window.present()
 
     def edit_existing_item(self, btn, list_box, item, window):
+        print("edit_existing_item")
         for i in range(len(self.details_names)):
             detail_name = self.details_names[i][1]
             value_widget = list_box.get_row_at_index(i).get_child().get_first_child().get_next_sibling()
@@ -851,12 +942,11 @@ class InventarioWindow(Adw.ApplicationWindow):
         window.destroy()
 
     def on_remove_one_item_button_clicked(self, btn):
-        item = self.get_item_by_id(btn.get_name())
+        #item = self.get_item_by_id(btn.get_name())
         #item.set_value_at_index() -= 1
-
         #item.details_all[10] = self.get_formatted_date()
-
-        self.on_column_view_activated(self.cv, self.selected_item)
+        #self.on_column_view_activated(self.cv, self.selected_item)
+        pass
 
     def get_item_by_id(self, item_id):
         for item in self.model:
@@ -883,10 +973,23 @@ class InventarioWindow(Adw.ApplicationWindow):
         factory.connect("unbind", self._on_factory_unbind, detail)
         factory.connect("teardown", self._on_factory_teardown)
 
-        column_sorter = Gtk.StringSorter()
-        col1 = Gtk.ColumnViewColumn(title=column_name, factory=factory, resizable=True, sorter = column_sorter)
-        col1.props.expand = True
-        self.cv.append_column(col1)
+        col = Gtk.ColumnViewColumn(title=column_name, factory=factory, resizable=True)
+        sorter = Gtk.CustomSorter.new(self.sort_func, user_data=detail)
+        sorter.connect("changed", self.scroll_to_the_top)
+        col.set_sorter(sorter)
+        col.props.expand = True
+        self.cv.append_column(col)
+
+    def scroll_to_the_top(self, change, data):
+        self.content_scrolled_window.get_vadjustment().set_value(0)
+        print(0)
+
+    def sort_func(self, obj_1, obj_2, data):
+        if str(obj_1.get_detail(data)) < str(obj_2.get_detail(data)):
+            return -1
+        elif str(obj_1.get_detail(data)) == str(obj_2.get_detail(data)):
+            return 0
+        return 1
 
     def show_items(self):
         self.content_scrolled_window.set_child(self.cv)
@@ -894,7 +997,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.content_scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.action_bar_revealer.set_reveal_child(True)
         if self.selected_item != None:
-            self.on_column_view_activated(self.cv, self.selected_item)
+            self.update_sidebar_item_info()
             self.cv.get_model().select_item(self.selected_item, True)
 
     def _on_factory_setup(self, factory, list_item):
@@ -1035,6 +1138,26 @@ class InventarioWindow(Adw.ApplicationWindow):
         elif selected_row.get_child().get_label() == "Items":
             self.show_items()
             self.last_page = 1
+        elif selected_row.get_child().get_label() == "Products":
+            self.show_products()
+            self.last_page = 2
+        elif selected_row.get_child().get_label() == "Invoice":
+            self.show_invoice()
+            self.last_page = 3
+
+    def show_products(self):
+        print("show products")
+        self.item_info_revealer.set_reveal_child(False)
+        self.action_bar_revealer.set_reveal_child(False)
+        self.products_box = Gtk.Box(margin_start=10, margin_top=10, margin_bottom=10, margin_end=10)
+        self.content_scrolled_window.set_child(self.products_box)
+
+    def show_invoice(self):
+        print("show invoices")
+        self.item_info_revealer.set_reveal_child(False)
+        self.action_bar_revealer.set_reveal_child(False)
+        self.invoices_box = Gtk.Box(margin_start=10, margin_top=10, margin_bottom=10, margin_end=10)
+        self.content_scrolled_window.set_child(self.invoices_box)
 
     def navigation_select_page(self, index):
         selected_row = self.sidebar_navigation_listBox.get_row_at_index(index)

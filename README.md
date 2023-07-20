@@ -23,7 +23,7 @@ Not all features will be implemented, it's just a list of ideas
 - [x] delete item
 - [x] edit item
 - [x] view item info
-- [ ] sorting
+- [x] alphabetical sorting
 - [ ] export to csv or other formats
 - [ ] dashboard with customizable widgets
 - [ ] low stock
