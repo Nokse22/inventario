@@ -221,7 +221,7 @@ class InventarioWindow(Adw.ApplicationWindow):
     dashboard_width = 3
     dashboard_height = 10
 
-    selected_item = None
+    selected_item = 0
     last_page = 1
 
     dashboard_widgets=["Simple value", "Progress bar"]
@@ -363,19 +363,24 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         self.show_dashboard()
 
-        self.cv = Gtk.ColumnView(single_click_activate=True, reorderable=True, css_classes=["flat"])
+        self.cv = Gtk.ColumnView(single_click_activate=False, reorderable=True, css_classes=["flat"])
 
         self.cv.set_show_column_separators(self.settings.get_boolean("enable-columns-separators"))
         self.cv.set_show_row_separators(self.settings.get_boolean("enable-rows-separators"))
 
         sorter_model = Gtk.SortListModel(model=self.model, sorter=self.cv.get_sorter())
-        self.cv.set_model(Gtk.NoSelection(model=sorter_model))
+        #self.selection_model = Gtk.NoSelection(model=sorter_model)
+        #self.selection_model.connect("selection-changed", self.on_selection_changed)
+        #self.cv.set_model(self.selection_model)
 
         tree_model = Gtk.TreeListModel.new(self.model, False, True, self.model_func)
         tree_sorter = Gtk.TreeListRowSorter.new(self.cv.get_sorter())
         sorter_model = Gtk.SortListModel(model=tree_model, sorter=tree_sorter)
-        selection = Gtk.SingleSelection.new(model=sorter_model)
-        self.cv.set_model(selection)
+
+        selection_model = Gtk.SingleSelection.new(model=sorter_model)
+        selection_model.connect("selection-changed", self.on_selection_changed)
+
+        self.cv.set_model(selection_model)
         self.cv.connect("activate", self.on_column_view_activated)
 
         for i in range(len(self.details_names)):
@@ -404,6 +409,12 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.read_inventory_file(path)
 
         print(self.settings.get_string("last-inventory-path"))
+
+        self.update_sidebar_item_info()
+
+    def on_selection_changed(self, selection_model, pos, row):
+        self.selected_item = selection_model.get_selection().get_maximum()
+        self.update_sidebar_item_info()
 
     def read_inventory_file(self, file_path):
         file_extension = os.path.splitext(file_path)[1]
