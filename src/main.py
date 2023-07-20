@@ -26,6 +26,11 @@ gi.require_version('Adw', '1')
 from gi.repository import Gtk, Gio, Adw
 from .window import InventarioWindow
 
+from gettext import gettext as _
+import locale
+from os import path
+from os.path import abspath, dirname, join, realpath
+import os
 
 class InventarioApplication(Adw.Application):
     """The main application singleton class."""
@@ -116,6 +121,18 @@ class InventarioApplication(Adw.Application):
         self.win.settings.bind("enable-horizontal-scrolling", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
         self.general_group.add(row)
 
+        row = Adw.ActionRow(title=("Enable rows separators"), subtitle=("It will take effect at the next start"))
+        switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        row.add_suffix(switch)
+        self.win.settings.bind("enable-rows-separators", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
+        self.general_group.add(row)
+
+        row = Adw.ActionRow(title=("Enable columns separators"), subtitle=("It will take effect at the next start"))
+        switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        row.add_suffix(switch)
+        self.win.settings.bind("enable-columns-separators", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
+        self.general_group.add(row)
+
         pref.present()
 
     def boolean_row(self, name, value, callback):
@@ -144,7 +161,6 @@ class InventarioApplication(Adw.Application):
         os.chdir(os.path.expanduser("~"))
         settings = Gio.Settings.new('io.github.nokse22.inventario')
         settings.set_int("last-page", self.win.last_page)
-        settings.set_int("item-selected", self.win.selected_item)
         self.on_save_action()
         Gtk.Application.do_shutdown(self)
 
