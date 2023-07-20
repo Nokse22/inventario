@@ -14,4 +14,38 @@
   <div align="center">
   <img src="data/resources/Screenshot 1.png" height="400"/>
   </div>
-  
+
+## Feature ideas:
+Not all features will be implemented, it's just a list of ideas
+- [x] saving inventory in a file
+- [x] automatically loading last file on startup
+- [x] view items list
+- [x] delete item
+- [x] edit item
+- [x] view item info
+- [ ] sorting
+- [ ] export to csv or other formats
+- [ ] dashboard with customizable widgets
+- [ ] low stock
+- [ ] datasheet file/url linking
+- [ ] barcode scanning
+- [ ] search for an item
+- [ ] filtered view
+- [ ] import from csv
+- [ ] bill/invoice generation
+- [ ] remove items from BOM
+- [ ] products list with items linked
+
+## Installation
+
+### From source
+
+You just need to clone the repository
+
+```sh
+git clone https://github.com/Nokse22/inventario.git
+```
+
+I'm using the latest version of Adwaita ( > 1.4.11) to be able to use Adw.NavigationSplitView that at the time is included only in Gnome Builder Nightly.
+
+Open the project in GNOME Builder and click "Run Project".
