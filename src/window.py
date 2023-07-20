@@ -288,8 +288,13 @@ class InventarioWindow(Adw.ApplicationWindow):
         content_page.set_child(self.content_box)
 
         title_box = Gtk.Box(orientation=1, valign=Gtk.Align.CENTER)
+
         self.title_label = Gtk.Label(label="Title", css_classes=["title-4"])
         title_box.append(self.title_label)
+
+        self.subtitle_label = Gtk.Label(label="subtitle", css_classes=["caption"])
+        title_box.append(self.subtitle_label)
+
         content_headerbar = Gtk.HeaderBar(css_classes=["flat"], title_widget=title_box)
         self.content_box.append(content_headerbar)
 
@@ -368,7 +373,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.cv.set_show_column_separators(self.settings.get_boolean("enable-columns-separators"))
         self.cv.set_show_row_separators(self.settings.get_boolean("enable-rows-separators"))
 
-        sorter_model = Gtk.SortListModel(model=self.model, sorter=self.cv.get_sorter())
+        #sorter_model = Gtk.SortListModel(model=self.model, sorter=self.cv.get_sorter())
         #self.selection_model = Gtk.NoSelection(model=sorter_model)
         #self.selection_model.connect("selection-changed", self.on_selection_changed)
         #self.cv.set_model(self.selection_model)
@@ -407,8 +412,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         if self.settings.get_boolean("open-last-on-start"):
             path = self.settings.get_string("last-inventory-path")
             self.read_inventory_file(path)
-
-        print(self.settings.get_string("last-inventory-path"))
 
         self.update_sidebar_item_info()
 
@@ -470,6 +473,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                     self.model.append(new_item)
             self.settings.set_string("last-inventory-path", file_path)
             self.title_label.set_label(file_name)
+            self.subtitle_label.set_label("~" + directory)
             toast = Adw.Toast()
             toast.set_title("File successfully opened")
             toast.set_timeout(1)
@@ -889,7 +893,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         if self.settings.get_boolean("enable-horizontal-scrolling"):
             self.content_scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.action_bar_revealer.set_reveal_child(True)
-        print(self.selected_item)
         if self.selected_item != None:
             self.on_column_view_activated(self.cv, self.selected_item)
             self.cv.get_model().select_item(self.selected_item, True)
@@ -1003,7 +1006,6 @@ class InventarioWindow(Adw.ApplicationWindow):
                 value = value_widget.get_value()
             if detail_type == "value":
                 value = value_widget.get_first_child().get_value()
-            print(str(value)+ "is type: " + str(detail_type)  )
             new_item.set_detail(detail_name, value)
         self.model.append(new_item)
         self.selected_item = len(self.model) - 1
@@ -1189,13 +1191,10 @@ class InventarioWindow(Adw.ApplicationWindow):
             grid.remove(self.simple_widget)
         except Exception:
             pass
-
         try:
             grid.remove(self.progress_widget)
         except Exception:
             pass
-
-
 
         self.simple_widget = self.dashboard_simple_widget(combo.get_active_text(), 20)
         self.progress_widget = self.dashboard_progress_widget(combo.get_active_text(), 20, 100)
