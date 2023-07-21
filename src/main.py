@@ -52,6 +52,7 @@ class InventarioApplication(Adw.Application):
         path = self.win.settings.get_string("last-inventory-path")
         self.win.save_inventory_file(path)
         self.win.model.remove_all()
+        self.win.item_info_revealer.set_reveal_child(False)
         self.win.settings.set_string("last-inventory-path", "")
 
     def on_save_action(self, widget=None, _=None):
@@ -67,7 +68,6 @@ class InventarioApplication(Adw.Application):
     def on_open_inventory_action(self, widget, _):
         self.win.open_file_chooser()
 
-
     def do_activate(self):
         """Called when the application is activated.
 
@@ -80,6 +80,12 @@ class InventarioApplication(Adw.Application):
         self.win.present()
 
         self.win.open_file_on_startup()
+        self.win.update_sidebar_item_info()
+
+    def on_show():
+        print('Doing stuff.')
+        sleep(3)
+        print('Done stuff.')
 
     def on_about_action(self, widget, _):
         """Callback for the app.about action."""
@@ -87,7 +93,8 @@ class InventarioApplication(Adw.Application):
                                 application_name='Inventario',
                                 application_icon='io.github.nokse22.inventario',
                                 developer_name='Nokse',
-                                issue_url="www.github.com/nokse22.inventario",
+                                website='https://github.com/Nokse22/inventario',
+                                issue_url='https://github.com/Nokse22/inventario/issues',
                                 version='0.1.0',
                                 developers=['Nokse'],
                                 copyright='© 2023 Nokse')

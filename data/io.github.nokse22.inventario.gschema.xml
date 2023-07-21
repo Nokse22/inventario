@@ -14,7 +14,7 @@
       <default>700</default>
     </key>
 	  <key name="last-inventory-path" type="s">
-      <default>'/home/lorenzo/Documents/inventory.inve'</default>
+      <default>''</default>
     </key>
 	  <key name="open-last-on-start" type="b">
       <default>true</default>

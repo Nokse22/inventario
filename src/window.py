@@ -219,7 +219,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     id_lenght = 5
 
-    dashboard_width = 3
+    dashboard_width = 4
     dashboard_height = 10
 
     selected_item = 0
@@ -256,7 +256,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         sidebar_headerbar = Adw.HeaderBar(css_classes=["flat"])
         open_file_button = Gtk.MenuButton()
-        adw_open_button_content = Adw.ButtonContent(icon_name="document-open-symbolic", label="Open")
+        adw_open_button_content = Adw.ButtonContent(icon_name="document-open-symbolic", label="Open/save")
         open_file_button.set_child(adw_open_button_content)
 
         open_menu = Gio.Menu()
@@ -290,14 +290,40 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         title_box = Gtk.Box(orientation=1, valign=Gtk.Align.CENTER)
 
-        self.title_label = Gtk.Label(label="Title", css_classes=["title-4"])
+        self.title_label = Gtk.Label(label="Inventario", css_classes=["title-4"])
         title_box.append(self.title_label)
 
-        self.subtitle_label = Gtk.Label(label="subtitle", css_classes=["caption"], opacity=0.6)
+        self.subtitle_label = Gtk.Label(visible=False,label="~/", css_classes=["caption"], opacity=0.6)
         title_box.append(self.subtitle_label)
 
         content_headerbar = Gtk.HeaderBar(css_classes=["flat"], title_widget=title_box)
         self.content_box.append(content_headerbar)
+
+        self.search_button_toggle = Gtk.ToggleButton()
+        self.search_button_toggle.set_icon_name("pan-down-symbolic")
+        self.search_button_toggle.connect("clicked", self.toggle_search_bar)
+
+        self.search_revealer = Gtk.Revealer(transition_type=4)
+        self.search_entry = Gtk.Entry(placeholder_text=_("Search"))
+
+        search_button = Gtk.Button()
+
+        self.search_selector = Gtk.ComboBoxText()
+        search_box = Gtk.Box(margin_start=6, margin_end=6, margin_bottom=6, spacing=6)
+
+
+        search_button.set_icon_name("system-search-symbolic")
+        search_button.connect("clicked", self.search_item)
+
+        search_box.append(self.search_entry)
+        search_box.append(self.search_selector)
+        search_box.append(search_button)
+
+        for detail in self.details_names:
+            self.search_selector.append_text(detail[0])
+        self.search_revealer.set_child(search_box)
+
+        self.content_box.append(self.search_revealer)
 
         toggle_sidebar_button = Gtk.Button(icon_name="go-previous-symbolic", visible=False)
         toggle_sidebar_button.connect("clicked", self.toggle_sidebar)
@@ -319,17 +345,9 @@ class InventarioWindow(Adw.ApplicationWindow):
         delete_item_button.set_icon_name("user-trash-symbolic")
         delete_item_button.connect("clicked", self.on_delete_item_button_clicked)
 
-        search_button = Gtk.Button()
-        search_button.set_icon_name("system-search-symbolic")
-        search_button.connect("clicked", self.search_item)
-
-        self.search_revealer = Gtk.Revealer(transition_type=2)
-        search_entry = Gtk.Entry(placeholder_text=_("Search"))
-        self.search_revealer.set_child(search_entry)
-
         content_headerbar.pack_end(menu_button)
-        content_headerbar.pack_start(self.search_revealer)
-        content_headerbar.pack_start(search_button)
+        #content_headerbar.pack_start(self.search_revealer)
+        content_headerbar.pack_start(self.search_button_toggle)
 
         self.content_scrolled_window = Gtk.ScrolledWindow(vexpand=True, overlay_scrolling=True)
         self.content_scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -417,6 +435,44 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         #self.update_sidebar_item_info()
 
+        #self.connect("activate", self.on_window_activate)
+
+    def on_window_activate(self, window):
+        # Function to be executed when the window is activated
+        print("Window activated!")
+        # Call the function you want to execute here
+        self.my_custom_function()
+
+    def search_item(self, btn):
+        text = self.search_entry.get_text()
+        detail_name = self.search_selector.get_active_text()
+        print("search selector: " + detail_name)
+        detail_call = ""
+        column_index = None
+        for index, detail in enumerate(self.details_names):
+            if detail[0] == detail_name:
+                detail_call = detail[1]
+                column_index = index
+        #self.cv.sort_by_column(self.cv.get_columns()[column_index], Gtk.SortType.DESCENDING)
+        for index, item in enumerate(self.model):
+            item_detail = item.get_detail(detail_call)
+            if item_detail == None:
+                pass
+            elif text in item_detail:
+                self.selected_item = index
+                self.cv.get_model().select_item(self.selected_item, True)
+            elif index == len(self.model) - 1:
+                self.send_toast("No result")
+            else:
+                # disable row, don't know how to do it...
+                pass
+
+    def send_toast(self, message):
+        toast = Adw.Toast()
+        toast.set_title(message)
+        toast.set_timeout(1)
+        self.toast_overlay.add_toast(toast)
+
     def new_factory(self, detail):
         factory = Gtk.SignalListItemFactory()
         factory.connect("setup", self._on_factory_setup)
@@ -429,14 +485,13 @@ class InventarioWindow(Adw.ApplicationWindow):
         if self.settings.get_boolean("open-last-on-start"):
             path = self.settings.get_string("last-inventory-path")
             self.read_inventory_file(path)
-        self.update_sidebar_item_info()
+
 
     def on_selection_changed(self, selection_model, pos, row):
         self.selected_item = selection_model.get_selection().get_maximum()
         self.update_sidebar_item_info()
 
     def read_inventory_file(self, file_path):
-        time.sleep(1)
         file_extension = os.path.splitext(file_path)[1]
         self.model.remove_all()
         if file_path == "":
@@ -446,10 +501,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         try:
             open(file_path, 'r').read()
         except Exception as e:
-            toast = Adw.Toast()
-            toast.set_title("Error reading file:" + str(e))
-            toast.set_timeout(2)
-            self.toast_overlay.add_toast(toast)
+            self.send_toast("Error reading file:" + str(e))
             return 0
 
         with open(file_path, 'r') as file:
@@ -490,11 +542,9 @@ class InventarioWindow(Adw.ApplicationWindow):
                     self.model.append(new_item)
             self.settings.set_string("last-inventory-path", file_path)
             self.title_label.set_label(file_name)
+            self.subtitle_label.set_visible(True)
             self.subtitle_label.set_label("~" + directory)
-            toast = Adw.Toast()
-            toast.set_title("File successfully opened")
-            toast.set_timeout(1)
-            self.toast_overlay.add_toast(toast)
+            self.send_toast("File successfully opened")
 
     def save_inventory_file(self, file_path):
         print(file_path)
@@ -504,10 +554,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         try:
             open(file_path, 'w', newline='\n')
         except Exception as e:
-            toast = Adw.Toast()
-            toast.set_title(str(e))
-            toast.set_timeout(1)
-            self.toast_overlay.add_toast(toast)
+            self.send_toast(str(e))
             return
         with open(file_path, 'w', newline='\n') as csvfile:
             writer = csv.writer(csvfile)
@@ -516,35 +563,46 @@ class InventarioWindow(Adw.ApplicationWindow):
             for item in self.model:
                 item_row = [item.get_detail(self.details_names[index][1]) for index in range(len(self.details_names))]
                 writer.writerow(item_row)
-        toast = Adw.Toast()
-        toast.set_title("File saved")
-        toast.set_timeout(1)
-        self.toast_overlay.add_toast(toast)
+
+        directory, file_name = os.path.split(file_path)
+        self.subtitle_label.set_visible(True)
+        self.subtitle_label.set_label("~" + directory)
+        self.title_label.set_label(file_name)
+
+        self.send_toast("File saved")
 
         print("file saved")
         self.settings.set_string("last-inventory-path", file_path)
 
     def on_save_file_path_selected(self, dialog, responce, dialog_parent):
+        path = self.save_inventory_file(dialog_parent.get_file().get_path())
+        print("the path is "+str(path))
         if responce == Gtk.ResponseType.CANCEL:
             #dialog.destroy()
             pass
         if responce == Gtk.ResponseType.ACCEPT:
-            dialog = Adw.MessageDialog(
-                heading="Replace File?",
-                body="There is already a file named this way",
-                close_response="cancel",
-                parent=self,
-                transient_for=self,
-                modal=True
-            )
-            dialog.set_title("Delete?")
+            if path == None:
+                self.send_toast("Invalid path")
+                return
+            if os.path.exists(path):
+                dialog = Adw.MessageDialog(
+                    heading="Replace File?",
+                    body="There is already a file named this way",
+                    close_response="cancel",
+                    parent=self,
+                    transient_for=self,
+                    modal=True
+                )
+                dialog.set_title("Delete?")
 
-            dialog.add_response("cancel", "Cancel")
-            dialog.add_response("replace", "Replace")
-            dialog.set_response_appearance("replace", Adw.ResponseAppearance.DESTRUCTIVE)
+                dialog.add_response("cancel", "Cancel")
+                dialog.add_response("replace", "Replace")
+                dialog.set_response_appearance("replace", Adw.ResponseAppearance.DESTRUCTIVE)
 
-            dialog.connect("response", self.replace_file_dialog_responce, dialog_parent)
-            dialog.present()
+                dialog.connect("response", self.replace_file_dialog_responce, dialog_parent)
+                dialog.present()
+            else:
+                self.save_inventory_file(path)
 
     def replace_file_dialog_responce(self, dialog, responce, dialog_parent):
         if responce == "cancel":
@@ -558,7 +616,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         dialog = Gtk.FileChooserNative(
             title="Save File As",
             transient_for=None,
-            action=Gtk.FileChooserAction.OPEN
+            action=Gtk.FileChooserAction.SAVE
         )
 
         dialog.set_accept_label("Save")
@@ -571,10 +629,7 @@ class InventarioWindow(Adw.ApplicationWindow):
     def on_delete_item_button_clicked(self, btn):
         item_index_to_delete = self.selected_item
         if self.selected_item == None:
-            toast = Adw.Toast()
-            toast.set_title("No item is selected")
-            toast.set_timeout(1)
-            self.toast_overlay.add_toast(toast)
+            self.send_toast("No item is selected")
             return
         dialog = Adw.MessageDialog(
             heading="Delete Item?",
@@ -607,10 +662,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
             self.update_sidebar_item_info()
 
-            toast = Adw.Toast()
-            toast.set_title("The item has been deleted")
-            toast.set_timeout(1)
-            self.toast_overlay.add_toast(toast)
+            self.send_toast("The item has been deleted")
 
     def on_check_button_toggled(self, check, column):
         column.set_visible(check.get_active())
@@ -623,11 +675,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 try:
                     open(file_path, 'r').read()
                 except Exception as e:
-                    dialog.destroy()
-                    toast = Adw.Toast()
-                    toast.set_title("Error reading file:" + str(e))
-                    toast.set_timeout(2)
-                    self.toast_overlay.add_toast(toast)
+                    self.send_toast("Error reading file:" + str(e))
                 else:
                     with open(file_path, 'r') as file:
                         file_contents = file.read()
@@ -636,10 +684,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                         if file_extension == ".inve":
                             self.read_inventory_file(file_path)
                         else:
-                            toast = Adw.Toast()
-                            toast.set_title("File extension not supported, use import")
-                            toast.set_timeout(1)
-                            self.toast_overlay.add_toast(toast)
+                            self.send_toast("File extension not supported, use import")
         else:
             dialog.destroy()
 
@@ -693,8 +738,13 @@ class InventarioWindow(Adw.ApplicationWindow):
         settings.set_int("window-width", window.get_allocated_width())
         settings.set_int("window-height", window.get_allocated_height())
 
-    def search_item(self, btn):
-        self.search_revealer.set_reveal_child(not self.search_revealer.get_reveal_child())
+    def toggle_search_bar(self, btn):
+        revealed = self.search_revealer.get_reveal_child()
+        self.search_revealer.set_reveal_child(not revealed)
+        if self.search_revealer.get_reveal_child():
+            self.search_button_toggle.set_icon_name("pan-up-symbolic")
+        else:
+            self.search_button_toggle.set_icon_name("pan-down-symbolic")
 
     def on_add_stock_to_item_button_clicked(self, btn):
         print("on_add_stock_to_item_button_clicked")
@@ -770,7 +820,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         if item_index == None:
             self.item_info_revealer.set_reveal_child(False)
             return
-
         #self.on_column_view_activated(self.cv, item)
 
         if len(self.model) == 0:
@@ -779,11 +828,11 @@ class InventarioWindow(Adw.ApplicationWindow):
             item_index = 0
         self.selected_item = item_index
         self.sidebar_item_info_list_box = Gtk.ListBox(show_separators=True, selection_mode=0,
-                margin_start=6, margin_end=6, margin_top=6, margin_bottom=6, vexpand=True)
+                margin_start=6, margin_end=6, vexpand=True)
         box1 = Gtk.Box(orientation=1, css_classes=["card"],
                 margin_start=6, margin_end=6, margin_top=6, margin_bottom=6)
 
-        self.sidebar_scrolled_window_item_info = Gtk.ScrolledWindow(vexpand=True)
+        self.sidebar_scrolled_window_item_info = Gtk.ScrolledWindow(vexpand=True, margin_top=6)
         self.sidebar_scrolled_window_item_info.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.sidebar_scrolled_window_item_info.set_child(self.sidebar_item_info_list_box)
 
@@ -830,8 +879,10 @@ class InventarioWindow(Adw.ApplicationWindow):
             box.append(Gtk.Label(label=text, xalign=1, hexpand=True, halign=Gtk.Align.FILL))
             self.sidebar_item_info_list_box.append(box)
 
-    def on_column_view_activated(self, cv, row):
-        self.show_edit_item_dialog(None, )
+    def on_column_view_activated(self, cv, row_index):
+        self.show_edit_item_dialog()
+        self.selected_item = row_index
+        self.update_sidebar_item_info()
 
     def show_edit_item_dialog(self, btn=None):
         print("show_edit_item_dialog")
@@ -934,10 +985,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
             item.set_detail(detail_name, value)
             self.update_sidebar_item_info()
-        toast = Adw.Toast()
-        toast.set_title(_("Item successfully edited"))
-        toast.set_timeout(1)
-        self.toast_overlay.add_toast(toast)
+        self.send_toast(_("Item successfully edited"))
 
         window.destroy()
 
@@ -992,13 +1040,17 @@ class InventarioWindow(Adw.ApplicationWindow):
         return 1
 
     def show_items(self):
+        self.search_button_toggle.set_visible(True)
+        self.search_revealer.set_reveal_child(self.search_button_toggle.get_active())
+
         self.content_scrolled_window.set_child(self.cv)
         if self.settings.get_boolean("enable-horizontal-scrolling"):
             self.content_scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.action_bar_revealer.set_reveal_child(True)
-        if self.selected_item != None:
-            self.update_sidebar_item_info()
-            self.cv.get_model().select_item(self.selected_item, True)
+        #if self.model != None:
+        self.selected_item = 0
+        self.update_sidebar_item_info()
+        self.cv.get_model().select_item(self.selected_item, True)
 
     def _on_factory_setup(self, factory, list_item):
         cell = Gtk.Inscription()
@@ -1132,18 +1184,9 @@ class InventarioWindow(Adw.ApplicationWindow):
         selected_row = list_box.get_selected_row()
 
         self.split_view.set_collapsed(False)
-        if selected_row.get_child().get_label() == "Dashboard":
-            self.show_dashboard()
-            self.last_page = 0
-        elif selected_row.get_child().get_label() == "Items":
-            self.show_items()
-            self.last_page = 1
-        elif selected_row.get_child().get_label() == "Products":
-            self.show_products()
-            self.last_page = 2
-        elif selected_row.get_child().get_label() == "Invoice":
-            self.show_invoice()
-            self.last_page = 3
+        self.navigation_select_page(selected_row.get_index())
+
+
 
     def show_products(self):
         print("show products")
@@ -1162,12 +1205,21 @@ class InventarioWindow(Adw.ApplicationWindow):
     def navigation_select_page(self, index):
         selected_row = self.sidebar_navigation_listBox.get_row_at_index(index)
         self.sidebar_navigation_listBox.select_row(selected_row)
+
+        self.last_page = index
+
         if selected_row.get_child().get_label() == "Dashboard":
             self.show_dashboard()
         elif selected_row.get_child().get_label() == "Items":
             self.show_items()
+        elif selected_row.get_child().get_label() == "Products":
+            self.show_products()
+        elif selected_row.get_child().get_label() == "Invoice":
+            self.show_invoice()
 
     def show_dashboard(self):
+        self.search_button_toggle.set_visible(False)
+        self.search_revealer.set_reveal_child(False)
         self.content_scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
         self.content_scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.item_info_revealer.set_reveal_child(False)
