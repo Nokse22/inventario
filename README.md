@@ -23,11 +23,14 @@ Not all features will be implemented, it's just a list of ideas
 - [x] delete item
 - [x] edit item
 - [x] view item info
-- [x] alphabetical sorting
+- [ ] sorting
+  - [x] alphabetical sorting
+  - [ ] numerical sorting
 - [x] search for an item
     - [x] search bar
     - [x] search item by detail
-    - [x] disable other rows
+    - [x] disable other rows (filter)
+    - [ ] 
 - [ ] export to csv or other formats
 - [ ] dashboard with customizable widgets
 - [ ] low stock
