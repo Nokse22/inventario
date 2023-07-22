@@ -304,23 +304,32 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.search_button_toggle.connect("clicked", self.toggle_search_bar)
 
         self.search_revealer = Gtk.Revealer(transition_type=4)
-        self.search_entry = Gtk.Entry(placeholder_text=_("Search"))
+        self.search_entry = Gtk.Entry(placeholder_text=_("Search"), hexpand=True)
+        self.search_entry.connect("activate", self.filter_rows)
 
-        search_button = Gtk.Button()
+        search_button = Gtk.Button(icon_name="system-search-symbolic")
+        delete_search_button = Gtk.Button(icon_name="edit-delete-symbolic")
 
-        self.search_selector = Gtk.ComboBoxText()
-        search_box = Gtk.Box(margin_start=6, margin_end=6, margin_bottom=6, spacing=6)
+        self.search_selector = Gtk.ComboBoxText(hexpand=True)
 
+        search_box = Gtk.FlowBox(margin_start=6, margin_end=6, margin_bottom=6,
+                column_spacing=6, selection_mode=Gtk.SelectionMode.NONE)
 
-        search_button.set_icon_name("system-search-symbolic")
-        search_button.connect("clicked", self.search_item)
+        search_button.connect("clicked", self.filter_rows)
+        delete_search_button.connect("clicked", self.delete_filter_rows)
 
         search_box.append(self.search_entry)
-        search_box.append(self.search_selector)
-        search_box.append(search_button)
+
+        options_box = Gtk.Box(spacing=6)
+        search_box.append(options_box)
+        options_box.append(self.search_selector)
+        options_box.append(search_button)
+        options_box.append(delete_search_button)
 
         for detail in self.details_names:
             self.search_selector.append_text(detail[0])
+        self.search_selector.set_active(2)
+
         self.search_revealer.set_child(search_box)
 
         self.content_box.append(self.search_revealer)
@@ -389,15 +398,15 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         self.cv = Gtk.ColumnView(single_click_activate=False, reorderable=True, css_classes=["flat"])
 
+        self.row_filter = Gtk.CustomFilter()
+        self.row_filter.set_filter_func(self.filter)
+        tree_model_filter = Gtk.FilterListModel(model=self.model)
+        tree_model_filter.set_filter(self.row_filter)
+
         self.cv.set_show_column_separators(self.settings.get_boolean("enable-columns-separators"))
         self.cv.set_show_row_separators(self.settings.get_boolean("enable-rows-separators"))
 
-        #sorter_model = Gtk.SortListModel(model=self.model, sorter=self.cv.get_sorter())
-        #self.selection_model = Gtk.NoSelection(model=sorter_model)
-        #self.selection_model.connect("selection-changed", self.on_selection_changed)
-        #self.cv.set_model(self.selection_model)
-
-        tree_model = Gtk.TreeListModel.new(self.model, False, True, self.model_func)
+        tree_model = Gtk.TreeListModel.new(tree_model_filter, False, True, self.model_func)
         tree_sorter = Gtk.TreeListRowSorter.new(self.cv.get_sorter())
         sorter_model = Gtk.SortListModel(model=tree_model, sorter=tree_sorter)
 
@@ -437,35 +446,40 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         #self.connect("activate", self.on_window_activate)
 
+    def filter_rows(self, btn):
+        if self.search_entry.get_text() != "":
+            self.row_filter.changed(Gtk.FilterChange.DIFFERENT)
+
+    def delete_filter_rows(self, btn):
+        self.search_entry.set_text("")
+        self.row_filter.changed(Gtk.FilterChange.LESS_STRICT)
+
+    def filter(self, item):
+        text = self.search_entry.get_text()
+        text = text.lower()
+        detail_name = self.search_selector.get_active_text()
+        detail_call = ""
+
+        for index, detail in enumerate(self.details_names):
+            if detail[0] == detail_name:
+                detail_call = detail[1]
+
+        item_detail = item.get_detail(detail_call)
+        item_detail = item_detail.lower()
+
+        if text == "":
+            return 1
+        if item_detail == None:
+            return 0
+        if text in item_detail:
+            return 1
+        return 0
+
     def on_window_activate(self, window):
         # Function to be executed when the window is activated
         print("Window activated!")
         # Call the function you want to execute here
         self.my_custom_function()
-
-    def search_item(self, btn):
-        text = self.search_entry.get_text()
-        detail_name = self.search_selector.get_active_text()
-        print("search selector: " + detail_name)
-        detail_call = ""
-        column_index = None
-        for index, detail in enumerate(self.details_names):
-            if detail[0] == detail_name:
-                detail_call = detail[1]
-                column_index = index
-        #self.cv.sort_by_column(self.cv.get_columns()[column_index], Gtk.SortType.DESCENDING)
-        for index, item in enumerate(self.model):
-            item_detail = item.get_detail(detail_call)
-            if item_detail == None:
-                pass
-            elif text in item_detail:
-                self.selected_item = index
-                self.cv.get_model().select_item(self.selected_item, True)
-            elif index == len(self.model) - 1:
-                self.send_toast("No result")
-            else:
-                # disable row, don't know how to do it...
-                pass
 
     def send_toast(self, message):
         toast = Adw.Toast()
