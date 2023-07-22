@@ -24,10 +24,10 @@ Not all features will be implemented, it's just a list of ideas
 - [x] edit item
 - [x] view item info
 - [x] alphabetical sorting
-- [ ] search for an item
+- [x] search for an item
     - [x] search bar
     - [x] search item by detail
-    - [ ] disable other rows
+    - [x] disable other rows
 - [ ] export to csv or other formats
 - [ ] dashboard with customizable widgets
 - [ ] low stock
