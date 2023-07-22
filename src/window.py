@@ -598,18 +598,21 @@ class InventarioWindow(Adw.ApplicationWindow):
                             custom_info_start_index = index
                             break
                         if value:
-                            type_info = self.details_names[index][2]
-                            detail_name = self.details_names[index][1]
-                            if type_info == "str" or type_info == "STR" or type_info == "date" or type_info == "DATE":
-                                new_value = str(value)
-                            elif type_info == "int":
-                                new_value = int(round(float(value)))
-                            elif type_info == "cost":
-                                new_value = float(value)
-                            elif type_info == "value":
-                                new_value = str(value)
-                            new_item.set_detail(detail_name, new_value)
-                            is_custom_value_row = True
+                            try:
+                                type_info = self.details_names[index][2]
+                                detail_name = self.details_names[index][1]
+                                if type_info == "str" or type_info == "STR" or type_info == "date" or type_info == "DATE":
+                                    new_value = str(value)
+                                elif type_info == "int":
+                                    new_value = int(round(float(value)))
+                                elif type_info == "cost":
+                                    new_value = float(value)
+                                elif type_info == "value":
+                                    new_value = str(value)
+                                new_item.set_detail(detail_name, new_value)
+                                is_custom_value_row = True
+                            except:
+                                pass
                     for index in range(int((len(row) - custom_info_start_index)/2)):
                         new_item.append_custom_value(row[custom_info_start_index + index],row[custom_info_start_index + index + 1])
 
