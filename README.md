@@ -26,11 +26,12 @@ Not all features will be implemented, it's just a list of ideas
 - [ ] sorting
   - [x] alphabetical sorting
   - [ ] numerical sorting
-- [x] search for an item
+- [x] search/filter items
     - [x] search bar
     - [x] search item by detail
     - [x] disable other rows (filter)
-    - [ ] 
+    - [x] conditional filter (<,>)
+    - [ ] fix bugs
 - [ ] export to csv or other formats
 - [ ] dashboard with customizable widgets
 - [ ] low stock
