@@ -32,13 +32,14 @@ Not all features will be implemented, it's just a list of ideas
     - [x] disable other rows (filter)
     - [x] conditional filter (<,>)
     - [ ] fix bugs
+- [x] custom info for every item with saving/loading from file
 - [ ] export to csv or other formats
+- [ ] import from csv or json
 - [ ] dashboard with customizable widgets
 - [ ] low stock
 - [ ] datasheet file/url linking
 - [ ] barcode scanning
 - [ ] filtered view
-- [ ] import from csv
 - [ ] bill/invoice generation
 - [ ] remove items from BOM
 - [ ] products list with items linked
