@@ -290,10 +290,10 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         title_box = Gtk.Box(orientation=1, valign=Gtk.Align.CENTER)
 
-        self.title_label = Gtk.Label(label="Inventario", css_classes=["title-4"])
+        self.title_label = Gtk.Label(label="Inventario", css_classes=["title-4"], ellipsize=3)
         title_box.append(self.title_label)
 
-        self.subtitle_label = Gtk.Label(visible=False,label="~/", css_classes=["caption"], opacity=0.6)
+        self.subtitle_label = Gtk.Label(visible=False,label="~/", css_classes=["caption"], opacity=0.6, ellipsize=1)
         title_box.append(self.subtitle_label)
 
         content_headerbar = Gtk.HeaderBar(css_classes=["flat"], title_widget=title_box)
@@ -304,16 +304,26 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.search_button_toggle.connect("clicked", self.toggle_search_bar)
 
         self.search_revealer = Gtk.Revealer(transition_type=4)
-        self.search_entry = Gtk.Entry(placeholder_text=_("Search"), hexpand=True)
+
+        self.search_entry = Gtk.Entry(placeholder_text=_("Search"), hexpand=True,
+                primary_icon_name="dialog-information-symbolic",
+                primary_icon_tooltip_text="Use ! then > or < to filter values",
+                primary_icon_sensitive=False,
+                secondary_icon_name="edit-clear-symbolic")
+        #self.search_entry.set_property(primary_icon_name, "info-symbolic")
+
         self.search_entry.connect("activate", self.filter_rows)
+        self.search_entry.connect("changed", self.entry_text_inserted)
+
+        self.search_entry.connect("icon-press", self.delete_search_text)
 
         search_button = Gtk.Button(icon_name="system-search-symbolic")
         delete_search_button = Gtk.Button(icon_name="edit-delete-symbolic")
 
         self.search_selector = Gtk.ComboBoxText(hexpand=True)
 
-        search_box = Gtk.FlowBox(margin_start=6, margin_end=6, margin_bottom=6,
-                column_spacing=6, selection_mode=Gtk.SelectionMode.NONE)
+        search_box = Gtk.FlowBox(margin_start=4, margin_end=4, margin_bottom=4,
+                selection_mode=Gtk.SelectionMode.NONE)
 
         search_button.connect("clicked", self.filter_rows)
         delete_search_button.connect("clicked", self.delete_filter_rows)
@@ -446,6 +456,16 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         #self.connect("activate", self.on_window_activate)
 
+    def delete_search_text(self, entry, text):
+        self.search_entry.set_text("")
+
+    def entry_text_inserted(self, entry):
+        text = entry.get_text()
+        if "!" in text:
+            entry.add_css_class("success")
+        if not "!" in text:
+            entry.remove_css_class("success")
+
     def filter_rows(self, btn):
         if self.search_entry.get_text() != "":
             self.row_filter.changed(Gtk.FilterChange.DIFFERENT)
@@ -465,15 +485,30 @@ class InventarioWindow(Adw.ApplicationWindow):
                 detail_call = detail[1]
 
         item_detail = item.get_detail(detail_call)
-        item_detail = item_detail.lower()
 
         if text == "":
             return 1
         if item_detail == None:
             return 0
-        if text in item_detail:
+
+        if text in str(item_detail).lower():
             return 1
+
+        try:
+            float(text[2:])
+        except:
+            return 0
+
+        if text[0] == "!":
+            value = float(text[2:])
+            if text[1] == ">":
+                if float(item_detail) > value:
+                    return 1
+            if text[1] == "<":
+                if float(item_detail) < value:
+                    return 1
         return 0
+
 
     def on_window_activate(self, window):
         # Function to be executed when the window is activated
@@ -708,8 +743,6 @@ class InventarioWindow(Adw.ApplicationWindow):
             transient_for=None,
             action=Gtk.FileChooserAction.OPEN,
         )
-
-        entry = Gtk.Entry()
 
         dialog.set_accept_label("Open")
         dialog.set_cancel_label("Cancel")
