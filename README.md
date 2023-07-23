@@ -23,14 +23,15 @@ Not all features will be implemented, it's just a list of ideas
 - [x] delete item
 - [x] edit item
 - [x] view item info
-- [ ] sorting
+- [x] sorting
   - [x] alphabetical sorting
-  - [ ] numerical sorting
+  - [x] numerical sorting
 - [x] search/filter items
     - [x] search bar
     - [x] search item by detail
     - [x] disable other rows (filter)
     - [x] conditional filter (<,>)
+    - [ ] multiple parameter search
     - [ ] fix bugs
 - [x] custom info for every item with saving/loading from file
 - [ ] export to csv or other formats

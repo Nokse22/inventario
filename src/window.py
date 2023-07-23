@@ -178,9 +178,7 @@ class Item(GObject.Object):
 
     def __repr__(self):
         text = "Item: "
-        for i in range(len(self._details)):
-            text += str(self._details[i]) + ", "
-        return text
+        return text + self.item_id
 
 class InventarioWindow(Adw.ApplicationWindow):
     __gtype_name__ = 'InventarioWindow'
@@ -436,26 +434,28 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         self.cv = Gtk.ColumnView(single_click_activate=False, reorderable=True, css_classes=["flat"])
 
+        # ListStore -> FilterListModel -> TreeListModel -> SortListModel -> SingleSelection
+
         self.row_filter = Gtk.CustomFilter()
         self.row_filter.set_filter_func(self.filter)
-        tree_model_filter = Gtk.FilterListModel(model=self.model)
-        tree_model_filter.set_filter(self.row_filter)
+        self.tree_model_filter = Gtk.FilterListModel(model=self.model)
+        self.tree_model_filter.set_filter(self.row_filter)
 
         self.cv.set_show_column_separators(self.settings.get_boolean("enable-columns-separators"))
         self.cv.set_show_row_separators(self.settings.get_boolean("enable-rows-separators"))
 
-        tree_model = Gtk.TreeListModel.new(tree_model_filter, False, True, self.model_func)
-        tree_sorter = Gtk.TreeListRowSorter.new(self.cv.get_sorter())
-        sorter_model = Gtk.SortListModel(model=tree_model, sorter=tree_sorter)
+        self.tree_model = Gtk.TreeListModel.new(self.tree_model_filter, False, True, self.model_func)
+        self.tree_sorter = Gtk.TreeListRowSorter.new(self.cv.get_sorter())
+        self.sorter_model = Gtk.SortListModel(model=self.tree_model, sorter=self.tree_sorter)
 
-        selection_model = Gtk.SingleSelection.new(model=sorter_model)
-        selection_model.connect("selection-changed", self.on_selection_changed)
+        self.selection_model = Gtk.SingleSelection.new(model=self.sorter_model) # sorter_model
+        self.selection_model.connect("selection-changed", self.on_selection_changed)
 
-        self.cv.set_model(selection_model)
+        self.cv.set_model(self.selection_model)
         self.cv.connect("activate", self.on_column_view_activated)
 
         for detail in self.details_names:
-            self.add_column(detail[0], detail[1])
+            self.add_column(detail[0], detail[1], detail[2])
 
         self.split_view.set_sidebar(sidebar_page)
         self.split_view.set_content(content_page)
@@ -729,15 +729,19 @@ class InventarioWindow(Adw.ApplicationWindow):
         dialog.connect("response", self.on_save_file_path_selected, dialog)
 
     def on_delete_item_button_clicked(self, btn):
-        item_index_to_delete = self.selected_item
+        item_to_delete = self.selection_model.get_item(self.selected_item).get_item()
+        for i, item in enumerate(self.model):
+            if item == item_to_delete:
+                item_index_to_delete = i
+                break
+
         if self.selected_item == None:
             self.send_toast("No item is selected")
             return
         dialog = Adw.MessageDialog(
             heading="Delete Item?",
-            body="This is a destructive action",
+            body="This is a destructive action. The item {} with a stock of {} will be destroyed and can not be recovered.".format(item_to_delete.item_name, item_to_delete.item_quantity),
             close_response="cancel",
-            parent=self,
             transient_for=self,
             modal=True
         )
@@ -752,7 +756,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         #item_index = get_row_model_index_from_id(item_to_delete.item_id)
 
     def on_delete_item_responce(self, dialog, responce, item_index):
-        print(responce)
         if responce == "cancel":
             dialog.destroy()
 
@@ -993,7 +996,9 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         self.item_info_revealer.set_reveal_child(True)
 
-        for info in self.model[item_index].custom_values_list():
+        item = self.selection_model.get_item(item_index).get_item()
+
+        for info in item.custom_values_list():
             box6 = Gtk.Box()
             box6.append(Gtk.Label(label=info[0], xalign=0, hexpand=True, margin_end=6, margin_start=6, margin_top=3, margin_bottom=3))
             box6.append(Gtk.Label(label=info[1], xalign=1, hexpand=True, halign=Gtk.Align.FILL, margin_end=6))
@@ -1005,10 +1010,10 @@ class InventarioWindow(Adw.ApplicationWindow):
             name = self.details_names[i][0] + ":"
             box.append(Gtk.Label(ellipsize=2, label=name, xalign=0, hexpand=True, margin_end=6))
 
-            self.model[item_index].get_detail(self.details_names[i][1])
+            item.get_detail(self.details_names[i][1])
 
             detail_type = self.details_names[i][2]
-            value = self.model[item_index].get_detail(self.details_names[i][1])
+            value = item.get_detail(self.details_names[i][1])
             if detail_type == "cost":
                 if value != None:
                     text = round(float(value), 2)
@@ -1020,6 +1025,8 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.sidebar_item_info_list_box.append(box)
 
     def on_column_view_activated(self, cv, row_index):
+        print("activated")
+        print(row_index)
         self.show_edit_item_dialog()
         self.selected_item = row_index
         self.update_sidebar_item_info()
@@ -1028,7 +1035,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         print("show_edit_item_dialog")
         item_index = self.selected_item
         if item_index < len(self.model):
-            item = self.model[item_index]
+            item = item = self.selection_model.get_item(self.selected_item).get_item()
         else:
             return
 
@@ -1195,15 +1202,15 @@ class InventarioWindow(Adw.ApplicationWindow):
         #print(args)
         pass
 
-    def add_column(self, column_name, detail):
+    def add_column(self, column_name, detail_call, detail_type):
         factory = Gtk.SignalListItemFactory()
         factory.connect("setup", self._on_factory_setup)
-        factory.connect("bind", self._on_factory_bind, detail)
-        factory.connect("unbind", self._on_factory_unbind, detail)
+        factory.connect("bind", self._on_factory_bind, detail_call)
+        factory.connect("unbind", self._on_factory_unbind, detail_call)
         factory.connect("teardown", self._on_factory_teardown)
 
         col = Gtk.ColumnViewColumn(title=column_name, factory=factory, resizable=True)
-        sorter = Gtk.CustomSorter.new(self.sort_func, user_data=detail)
+        sorter = Gtk.CustomSorter.new(self.sort_func, user_data=[detail_call, detail_type])
         sorter.connect("changed", self.scroll_to_the_top)
         col.set_sorter(sorter)
         col.props.expand = True
@@ -1213,12 +1220,32 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.content_scrolled_window.get_vadjustment().set_value(0)
         print(0)
 
-    def sort_func(self, obj_1, obj_2, data):
-        if str(obj_1.get_detail(data)) < str(obj_2.get_detail(data)):
-            return -1
-        elif str(obj_1.get_detail(data)) == str(obj_2.get_detail(data)):
-            return 0
-        return 1
+    def sort_func(self, obj_1, obj_2, detail_call_and_type):
+        detail_call = detail_call_and_type[0]
+        detail_type = detail_call_and_type[1]
+        obj_1_detail = obj_1.get_detail(detail_call)
+        obj_2_detail = obj_2.get_detail(detail_call)
+
+        if detail_type in ["int", "cost", "value"]:
+            if detail_type == "value":
+                obj_1_detail, unit = self.split_string_with_unit(obj_1_detail)
+                obj_2_detail, unit = self.split_string_with_unit(obj_2_detail)
+            if obj_1_detail == None:
+                obj_1_detail = 0
+            if obj_2_detail == None:
+                obj_2_detail = 0
+            if float(obj_1_detail) < float(obj_2_detail):
+                return -1
+            elif float(obj_1_detail) == float(obj_2_detail):
+                return 0
+            return 1
+
+        else:
+            if str(obj_1_detail) < str(obj_2_detail):
+                return -1
+            elif str(obj_1_detail) == str(obj_2_detail):
+                return 0
+            return 1
 
     def show_items(self):
         self.search_button_toggle.set_visible(True)
