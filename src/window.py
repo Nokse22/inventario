@@ -58,6 +58,8 @@ class Item(GObject.Object):
         self._item_stock_for_sale = None
         self._item_storage = None
         self._unit_of_measure = None
+        self._item_part_number = None
+        self._item_seller = None
         self._item_custom_values_list = []
 
     @GObject.Property(type=str)
@@ -90,6 +92,8 @@ class Item(GObject.Object):
 
     @GObject.Property(type=str)
     def item_value(self):
+        if self._item_value in ["0", "0.0", "0.0 ", "0.0  ", "0.0   "]:
+            return None
         return self._item_value
 
     @GObject.Property(type=str)
@@ -135,6 +139,16 @@ class Item(GObject.Object):
     @GObject.Property(type=str)
     def item_storage(self):
         return self._item_storage
+
+    @GObject.Property(type=str)
+    def item_part_number(self):
+        return self._item_part_number
+
+    @GObject.Property(type=str)
+    def item_seller(self):
+        return self._item_seller
+
+
 
     def custom_values_list(self):
         return self._item_custom_values_list
@@ -195,13 +209,15 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     details_names = [
                     ["ID", "item_id", "STR"],
-                    ["Category","item_category", "str"],
+                    ["Category","item_category", "cat"],
                     ["Name","item_name", "str"],
                     ["Stock", "item_quantity", "int"],
                     ["Package", "item_package", "str"],
+                    ["Part Number","item_part_number", "str"],
                     ["Price", "item_cost", "cost"],
                     ["Value", "item_value", "value"],
                     ["Manufacturer", "item_manufacturer", "str"],
+                    ["Seller", "item_seller", "str"],
                     ["Storage location", "item_storage", "str"],
                     ["Description", "item_description", "str"],
                     ["Selling Price", "item_selling_price", "cost"],
@@ -213,7 +229,8 @@ class InventarioWindow(Adw.ApplicationWindow):
                     ["Created on", "item_creation", "DATE"],
                     ["Modified on", "item_modification", "date"],
                     ]
-    units_of_measure = ["F", "nF", "uF", "pF",
+    units_of_measure = ["  ",
+                   "F", "nF", "uF", "pF",
                    "MΩ", "kΩ", "Ω", "mΩ", "μΩ", "nΩ",
                    "H", "mH", "μH", "nH",
                    "V", "mV", "μV",
@@ -221,21 +238,12 @@ class InventarioWindow(Adw.ApplicationWindow):
                    "W", "mW",
                    "Hz", "kHz", "MHz", "GHz",
                    "kg", "g",
-                   "m", "mm", "cm", "km"]
+                   "m", "mm", "cm", "km",
+                   "MV", "kV", "V", "mV", "μV", "nV"]
+
+    categories = ["ELECTRONICS", "MECHANICAL", "CONSUMABLE"]
 
     details_lenght = len(details_names)
-
-    id_index = 0
-    category_index = 1
-    name_index = 2
-    quantity_index = 3
-    package_index = 4
-    price_index = 5
-    value_index = 6
-    manufacturer_index = 7
-    description_index = 8
-    created_on_index = 9
-    modified_on_index = 10
 
     id_lenght = 5
 
@@ -291,7 +299,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         open_menu.append_section(None, open_menu_section)
 
         open_menu_section = Gio.Menu()
-        open_menu_section.append("Open", "app.open-inventory")
+        open_menu_section.append("Open File", "app.open-inventory")
         open_menu_section.append("Import", "app.import")
         open_menu.append_section(None, open_menu_section)
 
@@ -372,7 +380,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         menu_button.set_icon_name("open-menu-symbolic")
         menu = Gio.Menu()
         menu.append(_("Preferences"), "app.preferences")
-        menu.append(_("Keyboard shorcuts"), "app.show-help-overlay")
+        menu.append(_("Keyboard shorcuts"), "win.show-help-overlay")
         menu.append(_("About"), "app.about")
         menu_button.set_menu_model(menu)
 
@@ -580,6 +588,9 @@ class InventarioWindow(Adw.ApplicationWindow):
             is_custom_value_row = False
 
             custom_info_start_index = 0
+
+            item_detail_call_list = []
+
             for i, row in enumerate(reader):
                 if i == 0:
                     for i, value in enumerate(row):
@@ -591,35 +602,37 @@ class InventarioWindow(Adw.ApplicationWindow):
                             else:
                                 self.cv.get_columns()[i].set_visible(False)
                                 self.column_visibility_check_buttons[i].set_active(False)
+                elif i == 1:
+                    for i, value in enumerate(row):
+                        item_detail_call_list.append(value)
                 else:
                     new_item = Item(0)
                     for index, value in enumerate(row):
-                        if index > len(self.details_names) - 1:
+                        if index > len(item_detail_call_list) - 1:
                             custom_info_start_index = index
                             break
                         if value:
                             try:
                                 type_info = self.details_names[index][2]
-                                detail_name = self.details_names[index][1]
-                                if type_info == "str" or type_info == "STR" or type_info == "date" or type_info == "DATE":
-                                    new_value = str(value)
-                                elif type_info == "int":
+                                detail_call = item_detail_call_list[index] # self.details_names[index][1]
+                                if type_info == "int":
                                     new_value = int(round(float(value)))
                                 elif type_info == "cost":
                                     new_value = float(value)
-                                elif type_info == "value":
+                                # elif type_info == "value":
+                                #     new_value = float(value)
+                                #if type_info == "str" or type_info == "STR" or type_info == "date" or type_info == "DATE":
+                                else:
                                     new_value = str(value)
-                                new_item.set_detail(detail_name, new_value)
+                                new_item.set_detail(detail_call, new_value)
                                 is_custom_value_row = True
                             except:
                                 pass
-                    for index in range(int((len(row) - custom_info_start_index)/2)):
-                        new_item.append_custom_value(row[custom_info_start_index + index],row[custom_info_start_index + index + 1])
+                    if custom_info_start_index > 0:
+                        for index in range(int((len(row) - custom_info_start_index)/2)):
+                            new_item.append_custom_value(row[custom_info_start_index + index],row[custom_info_start_index + index + 1])
 
                     self.model.append(new_item)
-
-
-
 
             self.settings.set_string("last-inventory-path", file_path)
             self.title_label.set_label(file_name)
@@ -639,8 +652,13 @@ class InventarioWindow(Adw.ApplicationWindow):
             return
         with open(file_path, 'w', newline='\n') as csvfile:
             writer = csv.writer(csvfile)
+
             column_view_row = [self.cv.get_columns()[index].get_visible() for index in range(len(self.details_names))]
             writer.writerow(column_view_row)
+
+            column_view_row = [detail_name[1] for detail_name in self.details_names]
+            writer.writerow(column_view_row)
+
             for item in self.model:
                 item_row = [item.get_detail(self.details_names[index][1]) for index in range(len(self.details_names))]
                 for custom_value in item.custom_values_list():
@@ -733,7 +751,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         dialog.present()
         #item_index = get_row_model_index_from_id(item_to_delete.item_id)
 
-
     def on_delete_item_responce(self, dialog, responce, item_index):
         print(responce)
         if responce == "cancel":
@@ -741,7 +758,11 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         if responce == "delete":
             self.model.remove(item_index)
-            self.selected_item = None
+            self.selected_item -= 1
+            if self.selected_item < 0:
+                self.selected_item = 0
+                if self.selected_item <= len(self.model):
+                    self.selected_item = None
             dialog.destroy()
 
             self.update_sidebar_item_info()
@@ -846,7 +867,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         else:
             add_item_window.set_title("Add stock to " + item.item_id)
 
-        add_item_window.set_default_size(400, 700)
+        add_item_window.set_default_size(600, 700)
         add_item_window.set_modal(True)
         add_item_window.set_transient_for(self)
         box = Gtk.Box(orientation=1, vexpand=True)
@@ -919,15 +940,22 @@ class InventarioWindow(Adw.ApplicationWindow):
         box1 = Gtk.Box(orientation=1, css_classes=["card"],
                 margin_start=6, margin_end=6, margin_top=6, margin_bottom=6)
 
+
         sidebar_scrolled_window_item_info = Gtk.ScrolledWindow(vexpand=True)
         sidebar_scrolled_window_item_info.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         sidebar_scrolled_window_item_info.set_child(self.sidebar_item_info_list_box)
         box5 = Gtk.Box(orientation=1)
-        box5.append(Gtk.Label(label="General Info", margin_top=6, margin_bottom=6, css_classes=["title-4"]))
+
+        infoCarousel = Adw.Carousel(allow_scroll_wheel=False)
+        infoCarousel.append(box5)
+        carouselIndicator = Adw.CarouselIndicatorLines(carousel=infoCarousel, margin_top=4)
+        box1.append(carouselIndicator)
+
+        #box5.append(carouselIndicator)
+        box5.append(Gtk.Label(label="General Info", margin_top=2, margin_bottom=6, css_classes=["title-4"]))
         box5.append(Gtk.Separator())
         box5.append(sidebar_scrolled_window_item_info)
-        carousel = Adw.Carousel()
-        carousel.append(box5)
+
 
         self.sidebar_item_custom_values_list_box = Gtk.ListBox(show_separators=True, selection_mode=0,
                 margin_start=6, margin_end=6, vexpand=True, width_request=300)
@@ -935,13 +963,14 @@ class InventarioWindow(Adw.ApplicationWindow):
         sidebar_scrolled_window_item_custom.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         sidebar_scrolled_window_item_custom.set_child(self.sidebar_item_custom_values_list_box)
         box5 = Gtk.Box(orientation=1)
-        box5.append(Gtk.Label(label="Custom Info", margin_top=6, margin_bottom=6, css_classes=["title-4"]))
+        box5.append(Gtk.Label(label="Custom Info", margin_top=2, margin_bottom=6, css_classes=["title-4"]))
         box5.append(Gtk.Separator())
         box5.append(sidebar_scrolled_window_item_custom)
 
-        carousel.append(box5)
+        infoCarousel.append(box5)
 
-        box1.append(carousel)
+        box1.append(infoCarousel)
+
 
         item_id=self.model[item_index].item_id
 
@@ -980,7 +1009,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
             detail_type = self.details_names[i][2]
             value = self.model[item_index].get_detail(self.details_names[i][1])
-            if detail_type == "value" or detail_type == "cost":
+            if detail_type == "cost":
                 if value != None:
                     text = round(float(value), 2)
             else:
@@ -1009,7 +1038,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             add_item_window.set_title("Edit " + item_name + " " + item.item_id)
         else:
             add_item_window.set_title("Edit " + item.item_id)
-        add_item_window.set_default_size(400, 700)
+        add_item_window.set_default_size(600, 700)
         add_item_window.set_modal(True)
         add_item_window.set_transient_for(self)
         box = Gtk.Box(orientation=1, vexpand=True)
@@ -1036,60 +1065,101 @@ class InventarioWindow(Adw.ApplicationWindow):
             list_box_add.append(box2)
             box2.append(Gtk.Label(label=self.details_names[i][0], xalign=0, hexpand=True))
             value = item.get_detail(self.details_names[i][1])
-            if self.details_names[i][2] == "str":
-                entry = Gtk.Entry(placeholder_text=_("Write here"),hexpand=True, margin_top=4, margin_bottom=4)
-                box2.append(entry)
-                if value != None:
-                    entry.set_text(str(value))
             if self.details_names[i][2] == "STR":
                 box2.append(Gtk.Label(label=value, hexpand=True, margin_top=4,
                         margin_bottom=4, xalign=0))
-            if self.details_names[i][2] == "int":
+            elif self.details_names[i][2] == "int":
                 spin_button = Gtk.SpinButton(climb_rate=1, hexpand=True, margin_top=4, margin_bottom=4)
                 spin_button.set_adjustment(Gtk.Adjustment(step_increment=1, lower=0, value=0, upper=100000000))
                 box2.append(spin_button)
                 if value != None:
                     spin_button.set_value(float(value))
-            if self.details_names[i][2] == "cost":
+            elif self.details_names[i][2] == "cost":
                 spin_button = Gtk.SpinButton(climb_rate=1, digits=2, hexpand=True, margin_top=4, margin_bottom=4)
                 spin_button.set_adjustment(Gtk.Adjustment(step_increment=0.01, lower=0, value=0, upper=100000000))
                 box2.append(spin_button)
                 if value != None:
                     spin_button.set_value(float(value))
-            if self.details_names[i][2] == "DATE":
+            elif self.details_names[i][2] == "DATE":
                 box2.append(Gtk.Label(label=value, hexpand=True, margin_top=4, margin_bottom=4, xalign=0))
-            if self.details_names[i][2] == "date":
+            elif self.details_names[i][2] == "date":
                 box2.append(Gtk.Label(label=self.get_formatted_date(), hexpand=True, margin_top=4, margin_bottom=4, xalign=0))
-            if self.details_names[i][2] == "value":
+            elif self.details_names[i][2] == "cat":
+                category_drop_down = Gtk.ComboBoxText(margin_top=4, margin_bottom=4,margin_end=4)
+                for category in self.categories:
+                    category_drop_down.append_text(category)
+                box2.append(category_drop_down)
+                category_drop_down.set_active(self.find_index(self.categories, value))
+
+            elif self.details_names[i][2] == "value":
                 spin_button = Gtk.SpinButton(climb_rate=1, digits=2, hexpand=True, margin_top=4, margin_bottom=4)
                 spin_button.set_width_chars(6)
-                spin_button.set_adjustment(Gtk.Adjustment(step_increment=0.01, lower=0, value=0, upper=100000000))
-                if value != None:
-                    spin_button.set_value(float(value))
+                spin_button.set_adjustment(Gtk.Adjustment(step_increment=0.1, lower=0, value=0, upper=100000000))
+                number, unit = self.split_string_with_unit(value)
+                if number != None:
+                    try:
+                        float(number)
+                    except:
+                        spin_button.set_value(0)
+                    else:
+                        spin_button.set_value(float(number))
+                drop_down = Gtk.DropDown.new_from_strings(self.units_of_measure)
+                drop_down.set_size_request(100, 0)
+                drop_down.set_enable_search(True)
+                drop_down.set_margin_start(6)
+                drop_down.set_margin_end(4)
+                drop_down.set_margin_top(4)
+                drop_down.set_selected(self.find_index(self.units_of_measure, unit))
                 box4 = Gtk.Box()
                 box4.append(spin_button)
-                box4.append(Gtk.DropDown(margin_start=4, margin_top=4, margin_bottom=4))
+                box4.append(drop_down)
                 box2.append(box4)
-
-
+            else:
+                entry = Gtk.Entry(placeholder_text=_("Write here"),hexpand=True, margin_top=4, margin_bottom=4)
+                box2.append(entry)
+                if value != None:
+                    entry.set_text(str(value))
         add_item_window.set_content(box)
         add_item_window.present()
+
+    def find_index(self, arr, value):
+        try:
+            index = arr.index(value)
+            return index
+        except ValueError:
+            return 0
+
+    def split_string_with_unit(self, input_string):
+        if input_string == None:
+            return input_string, "  "
+        index_of_space = str(input_string).find(" ")
+        if index_of_space != -1:
+            first_part = input_string[:index_of_space]
+            second_part = input_string[index_of_space + 1:]
+            print(second_part)
+            return float(first_part), second_part
+        return float(input_string), "  "
 
     def edit_existing_item(self, btn, list_box, item, window):
         print("edit_existing_item")
         for i in range(len(self.details_names)):
             detail_name = self.details_names[i][1]
             value_widget = list_box.get_row_at_index(i).get_child().get_first_child().get_next_sibling()
-            if self.details_names[i][2] == "str" or self.details_names[i][2] == "date" or self.details_names[i][2] == "DATE":
-                value = value_widget.get_text()
+
             if self.details_names[i][2] == "STR":
                 value = value_widget.get_label()
-            if self.details_names[i][2] == "int":
+            elif self.details_names[i][2] == "int":
                 value = int(value_widget.get_value())
-            if self.details_names[i][2] == "cost":
+            elif self.details_names[i][2] == "cost":
                 value = float(value_widget.get_value())
-            if self.details_names[i][2] == "value":
-                value = value_widget.get_first_child().get_value()
+            elif self.details_names[i][2] == "value":
+                value = str(round(float(value_widget.get_first_child().get_value()), 2))
+                unit_index = value_widget.get_first_child().get_next_sibling().get_selected()
+                value += " " + str(self.units_of_measure[unit_index])
+            elif self.details_names[i][2] == "cat":
+                value = value_widget.get_active_text()
+            else:
+                value = value_widget.get_text()
 
             if value == 0 or value == "0" or value == "0.0":
                 value = None
@@ -1199,7 +1269,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         add_item_window = Adw.Window(resizable=True)
         add_item_window.set_title("Add item")
 
-        add_item_window.set_default_size(400, 700)
+        add_item_window.set_default_size(600, 700)
         add_item_window.set_modal(True)
         add_item_window.set_transient_for(self)
         box = Gtk.Box(orientation=1, vexpand=True)
@@ -1251,13 +1321,25 @@ class InventarioWindow(Adw.ApplicationWindow):
             if self.details_names[i][2] == "value":
                 spin_button = Gtk.SpinButton(climb_rate=1, digits=2, hexpand=True, margin_end=4, margin_top=4, margin_bottom=4)
                 spin_button.set_adjustment(Gtk.Adjustment(step_increment=0.01, lower=0, value=0, upper=100000000))
-                value_drop_down = Gtk.ComboBoxText(margin_start=4, margin_top=4, margin_bottom=4,margin_end=4)
-                for unit in self.units_of_measure:
-                    value_drop_down.append_text(unit)
+
+                drop_down = Gtk.DropDown.new_from_strings(self.units_of_measure)
+                drop_down.set_size_request(100, 0)
+                drop_down.set_enable_search(True)
+                drop_down.set_margin_start(6)
+                drop_down.set_margin_bottom(4)
+                drop_down.set_margin_end(4)
+                drop_down.set_margin_top(4)
+                drop_down.set_selected(0)
+
                 box4 = Gtk.Box()
                 box4.append(spin_button)
-                box4.append(value_drop_down)
+                box4.append(drop_down)
                 box2.append(box4)
+            if self.details_names[i][2] == "cat":
+                category_drop_down = Gtk.ComboBoxText(margin_top=4, margin_bottom=4,margin_end=4)
+                for category in self.categories:
+                    category_drop_down.append_text(category)
+                box2.append(category_drop_down)
 
         box6.append(Gtk.Separator())
         custom_info_box = Gtk.Box(orientation=1)
@@ -1283,13 +1365,19 @@ class InventarioWindow(Adw.ApplicationWindow):
         add_item_window.present()
 
     def add_custom_info_to_listbox(self, btn, list_box):
-        box2 = Gtk.Box(homogeneous=True)
+        row_index = 0
+
+        box2 = Gtk.Box(margin_end=4, margin_start=6, margin_top=4, margin_bottom=4, spacing=6)
         list_box.append(box2)
         name = "Custom info"
-        box2.append(Gtk.Entry(placeholder_text=_("Name"),hexpand=True, margin_end=4, margin_top=4,
-                margin_bottom=4))
-        box2.append(Gtk.Entry(placeholder_text=_("Value"),hexpand=True, margin_end=4, margin_top=4,
-                margin_bottom=4))
+        box2.append(Gtk.Entry(placeholder_text=_("Name"),hexpand=True))
+        box2.append(Gtk.Entry(placeholder_text=_("Value"),hexpand=True))
+        delete_button = Gtk.Button(icon_name="user-trash-symbolic")
+        delete_button.connect("clicked", self.delete_custom_item_row, list_box)
+        box2.append(delete_button)
+
+    def delete_custom_item_row(self, btn, list_box):
+        list_box.remove(btn.get_parent().get_parent())
 
     def get_formatted_date(self):
         today = datetime.date.today()
@@ -1309,17 +1397,24 @@ class InventarioWindow(Adw.ApplicationWindow):
                 value = value_widget.get_label()
             if detail_type == "int" or detail_type == "cost":
                 value = value_widget.get_value()
+            if detail_type == "cat":
+                value = value_widget.get_active_text()
             if detail_type == "value":
-                value = value_widget.get_first_child().get_value()
+                value = str(round(float(value_widget.get_first_child().get_value()), 2))
+                unit_index = value_widget.get_first_child().get_next_sibling().get_selected()
+                value += " " + str(self.units_of_measure[unit_index])
             new_item.set_detail(detail_name, value)
 
         custom_infos = 0
         while custom_info_list_box.get_row_at_index(custom_infos) != None:
-
             name = custom_info_list_box.get_row_at_index(custom_infos).get_child().get_first_child().get_text()
             value = custom_info_list_box.get_row_at_index(custom_infos).get_child().get_first_child().get_next_sibling().get_text()
-            new_item.append_custom_value(name, value)
+            if name != "" and value != "":
+                new_item.append_custom_value(name, value)
             custom_infos += 1
+
+        # value = list_box.get_row_at_index(index).get_child().get_first_child().get_next_sibling().get_text()
+        # name = list_box.get_row_at_index(index).get_child().get_first_child().get_text()
 
         self.model.append(new_item)
         self.selected_item = len(self.model) - 1
@@ -1354,12 +1449,22 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.products_box = Gtk.Box(margin_start=10, margin_top=10, margin_bottom=10, margin_end=10)
         self.content_scrolled_window.set_child(self.products_box)
 
+        products_status_page = Adw.StatusPage(title="Work in progress",
+                icon_name="package-x-generic-symbolic", hexpand=True, vexpand=True,
+                description="Products are still not supported")
+        self.products_box.append(products_status_page)
+
     def show_invoice(self):
         print("show invoices")
         self.item_info_revealer.set_reveal_child(False)
         self.action_bar_revealer.set_reveal_child(False)
         self.invoices_box = Gtk.Box(margin_start=10, margin_top=10, margin_bottom=10, margin_end=10)
         self.content_scrolled_window.set_child(self.invoices_box)
+
+        invoice_status_page = Adw.StatusPage(title="Work in progress",
+                icon_name="accessories-text-editor-symbolic", hexpand=True, vexpand=True,
+                description="Invoices are still not supported")
+        self.invoices_box.append(invoice_status_page)
 
     def navigation_select_page(self, index):
         selected_row = self.sidebar_navigation_listBox.get_row_at_index(index)
