@@ -21,6 +21,42 @@
                 <property name="action-name">app.quit</property>
               </object>
             </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes" context="shortcut window">New Inventory</property>
+                <property name="action-name">app.new-inventory</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes" context="shortcut window">Save</property>
+                <property name="action-name">app.save</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes" context="shortcut window">Save As</property>
+                <property name="action-name">app.save-as</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes" context="shortcut window">Import</property>
+                <property name="action-name">app.import</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes" context="shortcut window">Open Inventory</property>
+                <property name="action-name">app.open-inventory</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title" translatable="yes" context="shortcut window">Open Preferences</property>
+                <property name="action-name">app.preferences</property>
+              </object>
+            </child>
           </object>
         </child>
       </object>
