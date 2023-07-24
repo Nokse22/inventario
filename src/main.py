@@ -80,7 +80,8 @@ class InventarioApplication(Adw.Application):
         self.win.present()
 
         self.win.open_file_on_startup()
-        self.win.update_sidebar_item_info()
+        if self.win.last_page == 1:
+            self.win.update_sidebar_item_info()
 
     def on_show():
         print('Doing stuff.')
