@@ -237,7 +237,9 @@ class InventarioWindow(Adw.ApplicationWindow):
                    "Hz", "kHz", "MHz", "GHz",
                    "kg", "g",
                    "m", "mm", "cm", "km",
-                   "MV", "kV", "V", "mV", "μV", "nV"]
+                   "MV", "kV", "V", "mV", "μV", "nV",
+                   "inches", "feet",
+                   "°"]
 
     categories = ["ELECTRONICS", "MECHANICAL", "CONSUMABLE"]
 
@@ -247,6 +249,8 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     dashboard_width = 4
     dashboard_height = 10
+
+    filter_parameters = []
 
     selected_item = 0
     last_page = 1
@@ -335,7 +339,8 @@ class InventarioWindow(Adw.ApplicationWindow):
                 primary_icon_name="dialog-information-symbolic",
                 primary_icon_tooltip_text="Use ! then > or < to filter values",
                 primary_icon_sensitive=False,
-                secondary_icon_name="edit-clear-symbolic")
+                secondary_icon_name="edit-clear-symbolic",
+                width_request=150)
         #self.search_entry.set_property(primary_icon_name, "info-symbolic")
 
         self.search_entry.connect("activate", self.filter_rows)
@@ -343,30 +348,42 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         self.search_entry.connect("icon-press", self.delete_search_text)
 
-        search_button = Gtk.Button(icon_name="system-search-symbolic")
-        delete_search_button = Gtk.Button(icon_name="edit-delete-symbolic")
+        search_button = Gtk.Button(icon_name="system-search-symbolic",
+                hexpand=True, css_classes=["accent"])
+        delete_search_button = Gtk.Button(icon_name="edit-delete-symbolic", hexpand=True)
+        add_search_option_button = Gtk.Button(icon_name="list-add-symbolic", hexpand=True)
 
-        self.search_selector = Gtk.ComboBoxText(hexpand=True)
-
-        search_box = Gtk.FlowBox(margin_start=4, margin_end=4, margin_bottom=4,
+        detail_just_names = []
+        for detail in self.details_names:
+            detail_just_names.append(detail[0])
+        self.search_selector = Gtk.DropDown.new_from_strings(detail_just_names)
+        self.search_selector.set_selected(2)
+        self.search_bar_box = Gtk.FlowBox(margin_start=4, margin_end=4, margin_bottom=4,
                 selection_mode=Gtk.SelectionMode.NONE)
 
         search_button.connect("clicked", self.filter_rows)
         delete_search_button.connect("clicked", self.delete_filter_rows)
-
-        search_box.append(self.search_entry)
+        add_search_option_button.connect("clicked", self.add_new_search_option)
 
         options_box = Gtk.Box(spacing=6)
-        search_box.append(options_box)
-        options_box.append(self.search_selector)
+        first_search_box = Gtk.Box(spacing=6)
+
         options_box.append(search_button)
+        options_box.append(add_search_option_button)
         options_box.append(delete_search_button)
 
-        for detail in self.details_names:
-            self.search_selector.append_text(detail[0])
-        self.search_selector.set_active(2)
+        #options_box.append()
 
-        self.search_revealer.set_child(search_box)
+        first_search_box.append(self.search_entry)
+        first_search_box.append(self.search_selector)
+        self.search_bar_box.append(options_box)
+        self.search_bar_box.append(first_search_box)
+
+        # for detail in self.details_names:
+        #     self.search_selector.append_text(detail[0])
+        # self.search_selector.set_active(2)
+
+        self.search_revealer.set_child(self.search_bar_box)
 
         self.content_box.append(self.search_revealer)
 
@@ -432,6 +449,9 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         self.show_dashboard()
 
+        for detail in self.details_names:
+            self.filter_parameters.append(["", detail[1]])
+
         self.cv = Gtk.ColumnView(single_click_activate=False, reorderable=True, css_classes=["flat"])
 
         # ListStore -> FilterListModel -> TreeListModel -> SortListModel -> SingleSelection
@@ -484,8 +504,36 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         #self.connect("activate", self.on_window_activate)
 
+    def add_new_search_option(self, btn):
+        new_search_box = Gtk.Box(spacing=6)
+        search_entry = Gtk.Entry(placeholder_text=_("New Search Option"), hexpand=True,
+                primary_icon_name="dialog-information-symbolic",
+                primary_icon_tooltip_text="Use ! then > or < to filter values",
+                primary_icon_sensitive=False,
+                secondary_icon_name="edit-clear-symbolic",
+                width_request=150)
+        search_entry.connect("icon-press", self.delete_search_text)
+        detail_just_names = []
+        search_entry.connect("activate", self.filter_rows)
+        search_entry.connect("changed", self.entry_text_inserted)
+        for detail in self.details_names:
+            detail_just_names.append(detail[0])
+        search_selector = Gtk.DropDown.new_from_strings(detail_just_names)
+        search_selector.set_selected(0)
+
+        delete_search_button = Gtk.Button(icon_name="edit-delete-symbolic",
+                css_classes=["error"])
+        delete_search_button.connect("clicked", self.delete_search_option, new_search_box)
+        new_search_box.append(search_entry)
+        new_search_box.append(search_selector)
+        new_search_box.append(delete_search_button)
+
+        self.search_bar_box.append(new_search_box)
+
+    def delete_search_option(self, btn, widget):
+        self.search_bar_box.remove(widget)
     def delete_search_text(self, entry, text):
-        self.search_entry.set_text("")
+        entry.set_text("")
 
     def entry_text_inserted(self, entry):
         text = entry.get_text()
@@ -495,47 +543,90 @@ class InventarioWindow(Adw.ApplicationWindow):
             entry.remove_css_class("success")
 
     def filter_rows(self, btn):
-        if self.search_entry.get_text() != "":
-            self.row_filter.changed(Gtk.FilterChange.DIFFERENT)
+        self.filter_parameters = []
+        for detail in self.details_names:
+            self.filter_parameters.append(["", detail[1]])
+        for child_index, child in enumerate(self.search_bar_box):
+            if child_index == 0:
+                continue
+            condition = child.get_child().get_first_child().get_text()
+            detail_call = self.details_names[child.get_child().get_first_child().get_next_sibling().get_selected()][1]
+            for index, detail in enumerate(self.details_names):
+                if detail[1] == detail_call:
+                    self.filter_parameters[index][0] = condition
+        print(self.filter_parameters)
+        self.row_filter.changed(Gtk.FilterChange.DIFFERENT)
 
     def delete_filter_rows(self, btn):
-        self.search_entry.set_text("")
-        self.row_filter.changed(Gtk.FilterChange.LESS_STRICT)
+        self.filter_parameters = []
+        for detail in self.details_names:
+            self.filter_parameters.append(["", detail[1]])
+        self.row_filter.changed(Gtk.FilterChange.DIFFERENT)
 
     def filter(self, item):
-        text = self.search_entry.get_text()
-        text = text.lower()
-        detail_name = self.search_selector.get_active_text()
-        detail_call = ""
+        show = True
 
-        for index, detail in enumerate(self.details_names):
-            if detail[0] == detail_name:
-                detail_call = detail[1]
+        for parameter in self.filter_parameters:
+            text = parameter[0] # text to search
+            #text = text.lower()
+            detail_call = parameter[1] # detail where to search
+            item_detail = item.get_detail(detail_call) # item detail
 
-        item_detail = item.get_detail(detail_call)
+            if text == "":
+                continue
 
-        if text == "":
-            return 1
-        if item_detail == None:
-            return 0
+            if text[0] == "!":
+                print("conditional")
+                try:
+                    float(text[2:])
+                    float(item_detail)
+                except:
+                    show = False
+                    break
+                value = float(text[2:])
+                if text[1] == ">":
+                    if float(item_detail) > value:
+                        continue
+                elif text[1] == "<":
+                    if float(item_detail) < value:
+                        continue
+                else:
+                    show = False
+                    break
 
-        if text in str(item_detail).lower():
-            return 1
+            if item_detail == None:
+                show = False
+                break
+            if text in str(item_detail).lower():
+                continue
+            else:
+                show = False
+                break
 
-        try:
-            float(text[2:])
-        except:
-            return 0
 
-        if text[0] == "!":
-            value = float(text[2:])
-            if text[1] == ">":
-                if float(item_detail) > value:
-                    return 1
-            if text[1] == "<":
-                if float(item_detail) < value:
-                    return 1
-        return 0
+        return show
+        # if text == "":
+        #     return 1
+        # if item_detail == None:
+        #     return 0
+
+        # if text in str(item_detail).lower():
+        #     return 1
+
+        # try:
+        #     float(text[2:])
+        # except:
+        #     return 0
+
+        # if text[0] == "!":
+        #     value = float(text[2:])
+        #     if text[1] == ">":
+        #         if float(item_detail) > value:
+        #             return 1
+        #     if text[1] == "<":
+        #         if float(item_detail) < value:
+        #             return 1
+        # return 0
 
 
     def on_window_activate(self, window):
@@ -898,27 +989,30 @@ class InventarioWindow(Adw.ApplicationWindow):
             add_row = True
             box2 = Gtk.Box(homogeneous=True)
             box2.append(Gtk.Label(label=self.details_names[i][0], margin_start=6, xalign=0,
-                        hexpand=True))
+                        hexpand=True, name=self.details_names[i][1]))
             if self.details_names[i][2] == "str":
                 add_row = False
-            if self.details_names[i][2] == "STR":
-                box2.append(Gtk.Label(label=value, hexpand=True, margin_end=4, margin_top=4,
-                        margin_bottom=4, xalign=0))
-            if self.details_names[i][2] == "int":
-                spin_button = Gtk.SpinButton(climb_rate=1, hexpand=True, margin_end=4, margin_top=4, margin_bottom=4)
+            elif self.details_names[i][2] == "STR":
+                add_row = False
+            elif self.details_names[i][2] == "int":
+                spin_button = Gtk.SpinButton(climb_rate=1, hexpand=True, margin_end=4,
+                        margin_top=4, margin_bottom=4, name=self.details_names[i][2])
                 spin_button.set_adjustment(Gtk.Adjustment(step_increment=1, lower=0, value=0, upper=100000000))
                 box2.append(spin_button)
                 if value != None:
                     spin_button.set_value(float(value))
-            if self.details_names[i][2] == "cost":
+            elif self.details_names[i][2] == "cost":
                 add_row = False
-            if self.details_names[i][2] == "DATE":
+            elif self.details_names[i][2] == "DATE":
                 add_row = False
-            if self.details_names[i][2] == "date":
+            elif self.details_names[i][2] == "cat":
+                add_row = False
+            elif self.details_names[i][2] == "date":
                 box2.append(Gtk.Label(label=self.get_formatted_date(), hexpand=True, margin_end=4, margin_top=4,
-                        margin_bottom=4, xalign=0))
-            if self.details_names[i][2] == "value":
+                        margin_bottom=4, xalign=0, name=self.details_names[i][2]))
+            elif self.details_names[i][2] == "value":
                 add_row = False
+
             if add_row:
                 list_box_add.append(box2)
 
@@ -1025,7 +1119,6 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.sidebar_item_info_list_box.append(box)
 
     def on_column_view_activated(self, cv, row_index):
-        print("activated")
         print(row_index)
         self.show_edit_item_dialog()
         self.selected_item = row_index
@@ -1068,61 +1161,70 @@ class InventarioWindow(Adw.ApplicationWindow):
         box.append(box3)
 
         for i in range(len(self.details_names)):
-            box2 = Gtk.Box(homogeneous=True)
+            box2 = Gtk.Box(homogeneous=True, margin_end=4, margin_start=4)
             list_box_add.append(box2)
-            box2.append(Gtk.Label(label=self.details_names[i][0], xalign=0, hexpand=True))
+            box2.append(Gtk.Label(label=self.details_names[i][0], xalign=0,
+                    hexpand=True, name=self.details_names[i][1]))
             value = item.get_detail(self.details_names[i][1])
             if self.details_names[i][2] == "STR":
                 box2.append(Gtk.Label(label=value, hexpand=True, margin_top=4,
-                        margin_bottom=4, xalign=0))
+                        margin_bottom=4, xalign=0, name=self.details_names[i][2]))
             elif self.details_names[i][2] == "int":
-                spin_button = Gtk.SpinButton(climb_rate=1, hexpand=True, margin_top=4, margin_bottom=4)
+                spin_button = Gtk.SpinButton(climb_rate=1, hexpand=True, margin_top=4,
+                        margin_bottom=4, name=self.details_names[i][2])
                 spin_button.set_adjustment(Gtk.Adjustment(step_increment=1, lower=0, value=0, upper=100000000))
                 box2.append(spin_button)
                 if value != None:
                     spin_button.set_value(float(value))
             elif self.details_names[i][2] == "cost":
-                spin_button = Gtk.SpinButton(climb_rate=1, digits=2, hexpand=True, margin_top=4, margin_bottom=4)
+                spin_button = Gtk.SpinButton(climb_rate=1, digits=2, hexpand=True,
+                        margin_top=4, margin_bottom=4, name=self.details_names[i][2])
                 spin_button.set_adjustment(Gtk.Adjustment(step_increment=0.01, lower=0, value=0, upper=100000000))
                 box2.append(spin_button)
                 if value != None:
                     spin_button.set_value(float(value))
             elif self.details_names[i][2] == "DATE":
-                box2.append(Gtk.Label(label=value, hexpand=True, margin_top=4, margin_bottom=4, xalign=0))
+                box2.append(Gtk.Label(label=value, hexpand=True, margin_top=4, margin_bottom=4,
+                        xalign=0, name=self.details_names[i][2]))
             elif self.details_names[i][2] == "date":
-                box2.append(Gtk.Label(label=self.get_formatted_date(), hexpand=True, margin_top=4, margin_bottom=4, xalign=0))
+                box2.append(Gtk.Label(label=self.get_formatted_date(), hexpand=True, margin_top=4,
+                        margin_bottom=4, xalign=0, name=self.details_names[i][2]))
             elif self.details_names[i][2] == "cat":
-                category_drop_down = Gtk.ComboBoxText(margin_top=4, margin_bottom=4,margin_end=4)
-                for category in self.categories:
-                    category_drop_down.append_text(category)
-                box2.append(category_drop_down)
-                category_drop_down.set_active(self.find_index(self.categories, value))
+                drop_down = Gtk.DropDown.new_from_strings(self.categories)
+                drop_down.set_name(name=self.details_names[i][2])
+                #drop_down.set_size_request(100, 0)
+                #drop_down.set_enable_search(True)
+                drop_down.set_margin_top(4)
+                drop_down.set_margin_bottom(4)
+                drop_down.set_selected(self.find_index(self.categories, value))
+
+                # category_drop_down = Gtk.ComboBoxText(margin_top=4, margin_bottom=4,margin_end=4,
+                #         name=self.details_names[i][2])
+                # for category in self.categories:
+                #     category_drop_down.append_text(category)
+                box2.append(drop_down)
+                #category_drop_down.set_active(self.find_index(self.categories, value))
 
             elif self.details_names[i][2] == "value":
                 spin_button = Gtk.SpinButton(climb_rate=1, digits=2, hexpand=True, margin_top=4, margin_bottom=4)
                 spin_button.set_width_chars(6)
                 spin_button.set_adjustment(Gtk.Adjustment(step_increment=0.1, lower=0, value=0, upper=100000000))
                 number, unit = self.split_string_with_unit(value)
-                if number != None:
-                    try:
-                        float(number)
-                    except:
-                        spin_button.set_value(0)
-                    else:
-                        spin_button.set_value(float(number))
+                spin_button.set_value(float(number))
                 drop_down = Gtk.DropDown.new_from_strings(self.units_of_measure)
                 drop_down.set_size_request(100, 0)
                 drop_down.set_enable_search(True)
                 drop_down.set_margin_start(6)
-                drop_down.set_margin_end(4)
                 drop_down.set_margin_top(4)
+                drop_down.set_margin_bottom(4)
                 drop_down.set_selected(self.find_index(self.units_of_measure, unit))
-                box4 = Gtk.Box()
+                box4 = Gtk.Box(name=self.details_names[i][2])
                 box4.append(spin_button)
                 box4.append(drop_down)
                 box2.append(box4)
             else:
-                entry = Gtk.Entry(placeholder_text=_("Write here"),hexpand=True, margin_top=4, margin_bottom=4)
+                entry = Gtk.Entry(placeholder_text=_("Write here"),hexpand=True, margin_top=4,
+                        margin_bottom=4, name=self.details_names[i][2])
                 box2.append(entry)
                 if value != None:
                     entry.set_text(str(value))
@@ -1138,41 +1240,53 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     def split_string_with_unit(self, input_string):
         if input_string == None:
-            return input_string, "  "
+            return 0, "  "
         index_of_space = str(input_string).find(" ")
         if index_of_space != -1:
             first_part = input_string[:index_of_space]
             second_part = input_string[index_of_space + 1:]
-            print(second_part)
-            return float(first_part), second_part
-        return float(input_string), "  "
+            try:
+                float(first_part)
+            except:
+                return 0, "  "
+            return first_part, second_part
+        try:
+            float(input_string)
+        except:
+            return 0, "  "
+        return input_string, "  "
 
     def edit_existing_item(self, btn, list_box, item, window):
         print("edit_existing_item")
         for i in range(len(self.details_names)):
-            detail_name = self.details_names[i][1]
-            value_widget = list_box.get_row_at_index(i).get_child().get_first_child().get_next_sibling()
+            value_widget_row = list_box.get_row_at_index(i)
 
-            if self.details_names[i][2] == "STR":
-                value = value_widget.get_label()
-            elif self.details_names[i][2] == "int":
-                value = int(value_widget.get_value())
-            elif self.details_names[i][2] == "cost":
-                value = float(value_widget.get_value())
-            elif self.details_names[i][2] == "value":
-                value = str(round(float(value_widget.get_first_child().get_value()), 2))
-                unit_index = value_widget.get_first_child().get_next_sibling().get_selected()
-                value += " " + str(self.units_of_measure[unit_index])
-            elif self.details_names[i][2] == "cat":
-                value = value_widget.get_active_text()
-            else:
-                value = value_widget.get_text()
+            if value_widget_row != None:
+                value_widget = value_widget_row.get_child().get_first_child().get_next_sibling()
+                detail_call = value_widget_row.get_child().get_first_child().get_name()
+                detail_type = value_widget.get_name()
 
-            if value == 0 or value == "0" or value == "0.0":
-                value = None
+                if detail_call != None and detail_type != None:
+                    if detail_type == "STR":
+                        value = value_widget.get_label()
+                    elif detail_type == "int":
+                        value = int(value_widget.get_value())
+                    elif detail_type == "cost":
+                        value = float(value_widget.get_value())
+                    elif detail_type == "value":
+                        value = str(round(float(value_widget.get_first_child().get_value()), 2))
+                        unit_index = value_widget.get_first_child().get_next_sibling().get_selected()
+                        value += " " + str(self.units_of_measure[unit_index])
+                    elif detail_type == "cat":
+                        value = self.categories[value_widget.get_selected()]
+                    else:
+                        value = value_widget.get_text()
 
-            item.set_detail(detail_name, value)
-            self.update_sidebar_item_info()
+                    if value == 0 or value == "0" or value == "0.0":
+                        value = None
+
+                    item.set_detail(detail_call, value)
+        self.update_sidebar_item_info()
         self.send_toast(_("Item successfully edited"))
 
         window.destroy()
@@ -1199,7 +1313,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         index = self.get_index_from_id(item_row_name)
 
     def model_func(self, args):
-        #print(args)
         pass
 
     def add_column(self, column_name, detail_call, detail_type):
@@ -1217,8 +1330,8 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.cv.append_column(col)
 
     def scroll_to_the_top(self, change, data):
+        print("scroll")
         self.content_scrolled_window.get_vadjustment().set_value(0)
-        print(0)
 
     def sort_func(self, obj_1, obj_2, detail_call_and_type):
         detail_call = detail_call_and_type[0]
@@ -1515,20 +1628,22 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.content_scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.item_info_revealer.set_reveal_child(False)
         self.action_bar_revealer.set_reveal_child(False)
-        self.dashboard_box = Gtk.Grid(row_homogeneous=True, column_homogeneous=True,
-                row_spacing=10, column_spacing=10, margin_start=10, margin_top=10, margin_bottom=10, margin_end=10)
+        self.dashboard_box = Gtk.FlowBox(margin_start=10, margin_top=10, margin_bottom=10, hexpand=True,
+                margin_end=10, valign=Gtk.Align.START, selection_mode=Gtk.SelectionMode.NONE,
+                max_children_per_line=4)
         self.content_scrolled_window.set_child(self.dashboard_box)
 
-        for i in range(self.dashboard_width):
-            for j in range(self.dashboard_height):
-                btn = Gtk.Button(css_classes=["flat"], icon_name="list-add-symbolic", name=str(i) + "," + str(j))
-                btn.connect("clicked", self.add_dashboard_widget)
-                self.dashboard_box.attach(btn, i, j, 1, 1)
+        # for i in range(self.dashboard_width):
+        #     for j in range(self.dashboard_height):
+        #         btn = Gtk.Button(css_classes=["flat"], icon_name="list-add-symbolic", name=str(i) + "," + str(j))
+        #         btn.connect("clicked", self.add_dashboard_widget)
+        #         self.dashboard_box.attach(btn, i, j, 1, 1)
 
-        self.dashboard_box.attach(self.dashboard_simple_widget("Items", len(self.model)), 0,0,1,1)
-        self.dashboard_box.attach(self.dashboard_simple_widget("Sold", len(self.model)), 0,1,1,1)
-        self.dashboard_box.attach(self.dashboard_simple_widget("Value", str(self.get_inventory_value()) + " €"), 0,2,1,1)
-        self.dashboard_box.attach(self.dashboard_progress_widget("Items to 100", len(self.model), 100), 1,0,2,1)
+        self.dashboard_box.append(self.dashboard_simple_widget("Items", len(self.model)))
+        self.dashboard_box.append(self.dashboard_simple_widget("Low Stock", self.get_low_stock(5)))
+        self.dashboard_box.append(self.dashboard_simple_widget("Out of Stock", self.get_low_stock(0)))
+        self.dashboard_box.append(self.dashboard_simple_widget("Value", str(self.get_inventory_value()) + " €"))
+        self.dashboard_box.append(self.dashboard_progress_widget("Items to 100", len(self.model), 100))
 
     def get_inventory_value(self):
         total = 0
@@ -1539,27 +1654,42 @@ class InventarioWindow(Adw.ApplicationWindow):
                 total += cost * stock
         return total
 
+    def get_low_stock(self, treshold):
+        low_stock_items_n = 0
+        for item in self.model:
+            stock = item.item_quantity
+            if stock <= treshold:
+                low_stock_items_n += 1
+        return low_stock_items_n
 
     def add_dashboard_widget(self, name, x, y, width, height):
         pass
 
     def dashboard_big_text_widget(self, info_name, info):
         box = Gtk.Box(css_classes=["card"], margin_start=6, margin_end=6,
-                margin_top=6, margin_bottom=6, hexpand=True, spacing = 6)
-        box.append(Gtk.Label(label=info_name, hexpand=True, xalign=0, margin_start=10, margin_top=10, margin_bottom=10))
-        box.append(Gtk.Label(label=info, hexpand=True, xalign=1, margin_end=10))
+                margin_top=6, margin_bottom=6, hexpand=True, spacing = 6, height_request=100)
+        box.append(Gtk.Image.new_from_icon_name("package-x-generic-symbolic"))
+        box2 = Gtk.Box(orientation=1)
+        box.append(box2)
+        box2.append(Gtk.Label(label=info_name, hexpand=True, xalign=0, margin_start=10, margin_top=10, margin_bottom=10))
+        box2.append(Gtk.Label(label=info, hexpand=True, xalign=1, margin_end=10))
         return box
 
     def dashboard_simple_widget(self, info_name, info):
-        box = Gtk.Box(css_classes=["card"], margin_start=6, margin_end=6,
-                margin_top=6, margin_bottom=6, hexpand=True, spacing = 6)
-        box.append(Gtk.Label(label=info_name, hexpand=True, xalign=0, margin_start=10, margin_top=10, margin_bottom=10))
-        box.append(Gtk.Label(label=info, hexpand=True, xalign=1, margin_end=10))
+        box = Gtk.Box(css_classes=["card"], margin_start=6, margin_end=6, vexpand=True,
+                margin_top=6, margin_bottom=6, hexpand=True, spacing = 6, height_request=100)
+        image = Gtk.Image(icon_name="package-x-generic-symbolic", pixel_size=40, margin_start=30)
+
+        box.append(image)
+        box2 = Gtk.Box(orientation=1)
+        box.append(box2)
+        box2.append(Gtk.Label(css_classes=["title-3"], label=info_name, hexpand=True, margin_start=10, margin_top=10, margin_bottom=10))
+        box2.append(Gtk.Label(label=info, hexpand=True, margin_end=10))
         return box
         
     def dashboard_progress_widget(self, info_name, info, total):
         box = Gtk.Box(css_classes=["card"], margin_start=6, margin_end=6,
-                margin_top=6, margin_bottom=6, hexpand=True, spacing = 6, orientation=1)
+                margin_top=6, margin_bottom=6, hexpand=True, spacing = 6, orientation=1, height_request=100)
         box.append(Gtk.Label(label=info_name, hexpand=True, xalign=0, margin_start=10, margin_top=10, margin_bottom=10))
         box.append(Gtk.ProgressBar(fraction=info/total, hexpand=True, margin_end=10, margin_start=10, margin_bottom=10))
         return box
