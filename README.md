@@ -12,7 +12,8 @@
   </p>
   
   <div align="center">
-  <img src="data/resources/Screenshot 1.png" height="400"/>
+  <img src="data/resources/Screenshot 1.png" height="350"/>
+  <img src="data/resources/Screenshot 2.png" height="350"/>
   </div>
 
 ## Feature ideas:
@@ -31,8 +32,7 @@ Not all features will be implemented, it's just a list of ideas
     - [x] search item by detail
     - [x] disable other rows (filter)
     - [x] conditional filter (<,>)
-    - [ ] multiple parameter search
-    - [ ] fix bugs
+    - [x] multiple parameter search
 - [x] custom info for every item with saving/loading from file
 - [ ] export to csv or other formats
 - [ ] import from csv or json
