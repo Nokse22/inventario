@@ -53,6 +53,7 @@ class InventarioApplication(Adw.Application):
         path = self.win.settings.get_string("last-inventory-path")
         self.win.save_inventory_file(path)
         self.win.model.remove_all()
+        self.win.products_model.remove_all()
         self.win.item_info_revealer.set_reveal_child(False)
         self.win.settings.set_string("last-inventory-path", "")
 
