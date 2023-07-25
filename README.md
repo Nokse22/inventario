@@ -45,8 +45,8 @@ Not all features will be implemented, it's just a list of ideas
     - [x] multiple parameter search
 - [ ] products
   - [ ] info page
-  - [ ] deleting
-  - [ ] saving
+  - [x] deleting
+  - [x] saving
   - [ ] in production and progress tracking
 - [x] custom info for every item with saving/loading from file
 - [x] triple pane layout
