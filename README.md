@@ -20,13 +20,13 @@
 Not all features will be implemented, it's just a list of ideas
 - [ ] saving inventory in a file
     - [x] saving items/parts list
-    - [ ] saving settings
-    - [ ] saving products and used parts
+    - [x] saving settings
+    - [x] saving products and used parts
     - [ ] saving history 
 - [ ] loading files
     - [x] loading items/parts list
-    - [ ] loading settings
-    - [ ] loading products
+    - [x] loading settings
+    - [x] loading products
     - [ ] loading history
 - [x] view items list
 - [x] delete item
@@ -43,6 +43,11 @@ Not all features will be implemented, it's just a list of ideas
     - [x] disable other rows (filter)
     - [x] conditional filter (<,>)
     - [x] multiple parameter search
+- [ ] products
+  - [ ] info page
+  - [ ] deleting
+  - [ ] saving
+  - [ ] in production and progress tracking
 - [x] custom info for every item with saving/loading from file
 - [x] triple pane layout
 - [x] link to buy from website
