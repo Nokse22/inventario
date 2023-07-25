@@ -18,12 +18,22 @@
 
 ## Feature ideas:
 Not all features will be implemented, it's just a list of ideas
-- [x] saving inventory in a file
-- [x] automatically loading last file on startup
+- [ ] saving inventory in a file
+    - [x] saving items/parts list
+    - [ ] saving settings
+    - [ ] saving products and used parts
+    - [ ] saving history 
+- [ ] loading files
+    - [x] loading items/parts list
+    - [ ] loading settings
+    - [ ] loading products
+    - [ ] loading history
 - [x] view items list
 - [x] delete item
 - [x] edit item
-- [x] view item info
+- [ ] view item info
+    - [x] list of details
+    - [ ] more info
 - [x] sorting
   - [x] alphabetical sorting
   - [x] numerical sorting
@@ -34,13 +44,14 @@ Not all features will be implemented, it's just a list of ideas
     - [x] conditional filter (<,>)
     - [x] multiple parameter search
 - [x] custom info for every item with saving/loading from file
-- [ ] export to csv or other formats
-- [ ] import from csv or json
+- [x] triple pane layout
+- [x] link to buy from website
+- [ ] export to CSV or other formats
+- [ ] import from CSV or JSON
 - [ ] dashboard with customizable widgets
 - [ ] low stock
-- [ ] datasheet file/url linking
+- [ ] data sheet file/URL linking
 - [ ] barcode scanning
-- [ ] filtered view
 - [ ] bill/invoice generation
 - [ ] remove items from BOM
 - [ ] products list with items linked
