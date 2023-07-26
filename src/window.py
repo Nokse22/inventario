@@ -205,7 +205,12 @@ class Item(GObject.Object):
         self._item_seller = None
         self._item_low_stock = None
         self._item_buy_link = None
+        self._item_datasheet = None
         self._item_custom_values_list = []
+
+    @GObject.Property(type=str)
+    def item_datasheet(self):
+        return self._item_datasheet
 
     @GObject.Property(type=str)
     def item_buy_link(self):
@@ -330,13 +335,14 @@ class Item(GObject.Object):
 class InventarioWindow(Adw.ApplicationWindow):
     __gtype_name__ = 'InventarioWindow'
 
-    sidebar_options = ["Dashboard", "Items", "Products", "Low Stock", "Invoice", ]
+    sidebar_options = ["Dashboard", "Items", "Products", "Low Stock", "Production", "Invoice", ]
 
     dashboard_index = 0
     parts_index = 1
     products_index = 2
-    invoices_index = 4
+    invoices_index = 5
     low_stock_index = 3
+    production_index = 4
 
     # TO ADD A NEW CATEGORY:
     # add a new entry in the following array like: ["Column name", "Item function to retrieve the value", "type"]
@@ -362,6 +368,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                     ["ID", "item_id", "STR"],
                     ["Category","item_category", "cat"],
                     ["Name","item_name", "str"],
+                    ["Description", "item_description", "str"],
                     ["Stock", "item_quantity", "int"],
                     ["Low Stock", "item_low_stock", "int"],
                     ["Package", "item_package", "str"],
@@ -371,7 +378,6 @@ class InventarioWindow(Adw.ApplicationWindow):
                     ["Manufacturer", "item_manufacturer", "str"],
                     ["Seller", "item_seller", "str"],
                     ["Storage location", "item_storage", "str"],
-                    ["Description", "item_description", "str"],
                     ["Selling Price", "item_selling_price", "cost"],
                     ["Stock Reserved", "item_stock_reserved", "int"],
                     ["Stock Allocated", "item_stock_allocated", "int"],
@@ -379,6 +385,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                     ["Stock on Order", "item_stock_on_order", "int"],
                     ["Stock for Sale", "item_stock_for_sale", "int"],
                     ["Buy Link", "item_buy_link", "str"],
+                    ["Data-sheet", "item_datasheet", "str"],
                     ["Created on", "item_creation", "DATE"],
                     ["Modified on", "item_modification", "date"],
                     ]
@@ -621,11 +628,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         delete_item_button.set_icon_name("user-trash-symbolic")
         delete_item_button.connect("clicked", self.on_delete_selected_button_clicked)
 
-        self.buy_more_button = Gtk.Button()
-        self.buy_more_button.set_icon_name("shopping-cart-symbolic")
-        #self.buy_more_button.set_uri("http://www.gnome.org")
-        self.buy_more_button.connect("clicked", self.open_buy_link)
-
         content_headerbar.pack_end(menu_button)
         #content_headerbar.pack_start(self.search_revealer)
         content_headerbar.pack_start(self.search_button_toggle)
@@ -648,7 +650,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.action_bar.pack_end(self.column_visibility_button)
         self.action_bar.pack_start(add_button)
         self.action_bar.pack_start(delete_item_button)
-        self.action_bar.pack_start(self.buy_more_button)
 
         self.content_box.append(self.action_bar_revealer)
 
@@ -758,25 +759,6 @@ class InventarioWindow(Adw.ApplicationWindow):
 
 
         self.navigation_select_page(self.last_page)
-
-    def open_buy_link(self, btn):
-        item = self.selection_model.get_item(self.selected_item).get_item()
-        link = item.item_buy_link
-        if link == None:
-            return
-        webbrowser.open(link)
-        app_info = Gio.AppInfo.get_default_for_uri_scheme(link)
-        if app_info:
-            app_info.launch_uris([link], None)
-        else:
-            print(f"No application found to handle URI: {link}")
-
-        if self.selected_item != None:
-            pass
-        else:
-            return
-
-        link = item.item_buy_link
 
     def column_visibility_check_button(self, column, array):
         title = column.get_title()
@@ -1271,7 +1253,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 break
 
         dialog = Adw.MessageDialog(
-            heading="Delete Item?",
+            heading="Delete Product?",
             body="This is a destructive action. The product {} will be destroyed and can not be recovered.".format(product_to_delete.product_name),
             close_response="cancel",
             transient_for=self,
@@ -1298,6 +1280,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 self.selected_product = 0
                 if self.selected_product <= len(self.products_model):
                     self.selected_product = None
+            self.update_sidebar_product_info()
             dialog.destroy()
 
             self.send_toast("The item has been deleted")
@@ -1531,7 +1514,9 @@ class InventarioWindow(Adw.ApplicationWindow):
         add_part_button = Gtk.Button(hexpand=True, label="+", css_classes=["success"], halign=Gtk.Align.END)
         middle_title_and_buttons_box.append(add_part_button)
 
+        box1.append(Gtk.Separator())
         box1.append(middle_title_and_buttons_box)
+        box1.append(Gtk.Separator())
         box1.append(scrolled_window_product_parts)
         box1.append(bottom_buttons_box)
 
@@ -1628,11 +1613,20 @@ class InventarioWindow(Adw.ApplicationWindow):
         else:
             buy_more_button.set_sensitive(False)
 
+        datasheet_button = Gtk.LinkButton(css_classes=[""])
+        datasheet_button.set_icon_name("rich-text-symbolic")
+
+        if item.item_datasheet != None:
+            datasheet_button.set_uri(item.item_datasheet)
+        else:
+            datasheet_button.set_sensitive(False)
+
         bottom_buttons_box = Gtk.Box(homogeneous=True, margin_start=6, margin_end=6, margin_top=6, margin_bottom=6, hexpand=True, spacing=6)
         bottom_buttons_box.append(edit_button)
         bottom_buttons_box.append(add_this_button)
         bottom_buttons_box.append(remove_this_button)
         bottom_buttons_box.append(buy_more_button)
+        bottom_buttons_box.append(datasheet_button)
 
         edit_button.connect("clicked", self.show_edit_item_dialog)
         add_this_button.connect("clicked", self.on_add_stock_to_item_button_clicked)
@@ -1911,14 +1905,13 @@ class InventarioWindow(Adw.ApplicationWindow):
             return 1
 
         else:
-            if str(obj_1_detail) < str(obj_2_detail):
+            if str(obj_1_detail).lower() < str(obj_2_detail).lower():
                 return -1
-            elif str(obj_1_detail) == str(obj_2_detail):
+            elif str(obj_1_detail).lower() == str(obj_2_detail).lower():
                 return 0
             return 1
 
     def show_items(self):
-        self.buy_more_button.set_visible(True)
         self.search_button_toggle.set_visible(True)
         self.column_visibility_button.set_visible(True)
         self.products_column_visibility_button.set_visible(False)
@@ -2317,7 +2310,6 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     def show_products(self):
         print("show products")
-        self.buy_more_button.set_visible(False)
         self.column_visibility_button.set_visible(False)
         self.products_column_visibility_button.set_visible(True)
         self.search_button_toggle.set_visible(False)
@@ -2409,9 +2401,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         box2.append(invoice_items_column_view_scrolled_window)
         list_box.append(box2)
 
-
-
-
         box3 = Gtk.Box(spacing=6, margin_start=6, margin_end=6, homogeneous=True)
         cancel_button = Gtk.Button(label=_("Cancel"), hexpand=True, margin_top=6, margin_bottom=6)
         cancel_button.connect("clicked", self.show_invoice)
@@ -2446,6 +2435,25 @@ class InventarioWindow(Adw.ApplicationWindow):
         elif selected_row.get_child().get_label() == "Low Stock":
             self.show_low_stock()
             self.delete_filter_rows()
+        elif selected_row.get_child().get_label() == "Production":
+            self.show_production()
+            self.delete_filter_rows()
+
+    def show_production(self):
+        print("show_production")
+        self.search_button_toggle.set_visible(False)
+        self.search_revealer.set_reveal_child(False)
+        self.item_info_revealer.set_reveal_child(False)
+        self.action_bar_revealer.set_reveal_child(False)
+        self.products_box = Gtk.Box(margin_start=10, margin_top=10, margin_bottom=10, margin_end=10)
+        #self.content_scrolled_window.set_child(self.products_box)
+
+        products_status_page = Adw.StatusPage(title="Work in progress",
+                icon_name="package-x-generic-symbolic", hexpand=True, vexpand=True,
+                description="Products are still not supported")
+
+        self.content_scrolled_window.set_child(None)
+        #self.content_scrolled_window.set_child(self.products_cv)
 
     def show_low_stock(self):
         self.search_button_toggle.set_visible(True)

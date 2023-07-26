@@ -3,5 +3,6 @@
   <gresource prefix="/io/github/nokse22/inventario">
     <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
     <file preprocess="xml-stripblanks">icons/shopping-cart-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">icons/rich-text-symbolic.svg</file>
   </gresource>
 </gresources>
