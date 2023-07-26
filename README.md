@@ -31,8 +31,11 @@ Not all features will be implemented, it's just a list of ideas
 - [x] view items list
 - [x] delete item
 - [x] edit item
-- [ ] view item info
-    - [x] list of details
+- [ ] selected page
+    - [x] item details
+    - [x] buy button
+    - [x] product info
+    - [ ] product parts
     - [ ] more info
 - [x] sorting
   - [x] alphabetical sorting
@@ -44,9 +47,11 @@ Not all features will be implemented, it's just a list of ideas
     - [x] conditional filter (<,>)
     - [x] multiple parameter search
 - [ ] products
-  - [ ] info page
+  - [x] info page
   - [x] deleting
   - [x] saving
+  - [ ] editing
+  - [ ] adding new parts
   - [ ] in production and progress tracking
 - [x] custom info for every item with saving/loading from file
 - [x] triple pane layout
