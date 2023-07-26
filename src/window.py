@@ -179,7 +179,7 @@ class Product(GObject.Object):
 class Item(GObject.Object):
     __gtype_name__ = "Item"
 
-    def __init__(self, lenght):
+    def __init__(self, length):
         super().__init__()
 
         self._item_id = None
@@ -609,7 +609,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         menu_button.set_icon_name("open-menu-symbolic")
         menu = Gio.Menu()
         menu.append(_("Preferences"), "app.preferences")
-        menu.append(_("Keyboard shorcuts"), "win.show-help-overlay")
+        menu.append(_("Keyboard shortcuts"), "win.show-help-overlay")
         menu.append(_("About"), "app.about")
         menu_button.set_menu_model(menu)
 
@@ -1173,14 +1173,14 @@ class InventarioWindow(Adw.ApplicationWindow):
         print("files saved in " + str(inventory_path))
         self.settings.set_string("last-inventory-path", inventory_path)
 
-    def on_save_file_path_selected(self, dialog, responce, dialog_parent):
+    def on_save_file_path_selected(self, dialog, response, dialog_parent):
         path = dialog_parent.get_file().get_path()
 
         print("The path is "+str(path))
-        if responce == Gtk.ResponseType.CANCEL:
+        if response == Gtk.ResponseType.CANCEL:
             #dialog.destroy()
             pass
-        if responce == Gtk.ResponseType.ACCEPT:
+        if response == Gtk.ResponseType.ACCEPT:
             if path == None:
                 self.send_toast("Invalid path")
                 return
@@ -1204,10 +1204,10 @@ class InventarioWindow(Adw.ApplicationWindow):
             else:
                 self.save_inventory_file(path)
 
-    def replace_file_dialog_responce(self, dialog, responce, dialog_parent):
-        if responce == "cancel":
+    def replace_file_dialog_responce(self, dialog, response, dialog_parent):
+        if response == "cancel":
             dialog.destroy()
-        if responce == "replace":
+        if response == "replace":
             self.save_inventory_file(dialog_parent.get_file().get_path())
             dialog.destroy()
 
@@ -1287,11 +1287,11 @@ class InventarioWindow(Adw.ApplicationWindow):
         dialog.present()
         #item_index = get_row_model_index_from_id(item_to_delete.item_id)
 
-    def on_delete_product_responce(self, dialog, responce, product_index):
-        if responce == "cancel":
+    def on_delete_product_responce(self, dialog, response, product_index):
+        if response == "cancel":
             dialog.destroy()
 
-        if responce == "delete":
+        if response == "delete":
             self.products_model.remove(product_index)
             self.selected_product -= 1
             if self.selected_product < 0:
@@ -1309,11 +1309,11 @@ class InventarioWindow(Adw.ApplicationWindow):
         elif self.last_page == self.products_index:
             self.delete_selected_product()
 
-    def on_delete_item_responce(self, dialog, responce, item_index):
-        if responce == "cancel":
+    def on_delete_item_responce(self, dialog, response, item_index):
+        if response == "cancel":
             dialog.destroy()
 
-        if responce == "delete":
+        if response == "delete":
             self.model.remove(item_index)
             self.selected_item -= 1
             if self.selected_item < 0:
@@ -2513,10 +2513,10 @@ class InventarioWindow(Adw.ApplicationWindow):
         low_stock_items_n = 0
         for item in self.model:
             stock = item.item_quantity
-            treshold = item.item_low_stock
-            if stock == None or treshold == None:
+            threshold = item.item_low_stock
+            if stock == None or threshold == None:
                 continue
-            if stock <= treshold:
+            if stock <= threshold:
                 low_stock_items_n += 1
         return low_stock_items_n
 
