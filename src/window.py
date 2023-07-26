@@ -35,6 +35,131 @@ import time
 import string
 import webbrowser
 
+class Part(GObject.Object):
+    __gtype_name__ = "Part"
+
+    def __init__(self):
+        super().__init__()
+
+        self._part_id = None
+        self._part_category = None
+        self._part_name = None
+        self._part_stock = None
+        self._part_package = None
+        self._part_cost = None
+        self._part_value = None
+        self._part_manufacturer = None
+        self._part_description = None
+        self._part_seller = None
+        self._part_stock_reserved = None
+        self._part_stock_allocated = None
+        self._part_stock_planned = None
+        self._part_stock_on_order = None
+        self._part_stock_for_sale = None
+        self._part_storage = None
+        self._part_part_number = None
+        self._used_quantity = None
+        self._part_datasheet = None
+
+    @GObject.Property(type=str)
+    def part_datasheet(self):
+        return self._part_datasheet
+
+    @GObject.Property(type=str)
+    def used_quantity(self):
+        return self._used_quantity
+
+    @GObject.Property(type=str)
+    def part_stock_on_order(self):
+        return self._part_stock_on_order
+
+    @GObject.Property(type=str)
+    def part_id(self):
+        return self._part_id
+
+    @GObject.Property(type=str)
+    def part_manufacturer(self):
+        return self._part_manufacturer
+
+    @GObject.Property(type=str)
+    def part_seller(self):
+        return self._part_seller
+
+    @GObject.Property(type=str)
+    def part_category(self):
+        return self._part_category
+
+    @GObject.Property(type=str)
+    def part_name(self):
+        return self._part_name
+
+    @GObject.Property(type=int)
+    def part_stock(self):
+        #return self._part_quantity + self._part_stock_reserved + self._part_stock_allocated + self._part_stock_planned + self._part_stock_on_order + self._part_stock_for_sale
+        return self._part_stock
+
+    @GObject.Property(type=str)
+    def part_package(self):
+        return self._part_package
+
+    @GObject.Property(type=str)
+    def part_cost(self):
+        return self._part_cost
+
+    @GObject.Property(type=str)
+    def part_description(self):
+        return self._part_description
+
+    @GObject.Property(type=int)
+    def part_stock_reserved(self):
+        return self._part_stock_reserved
+
+    @GObject.Property(type=int)
+    def part_stock_allocated(self):
+        return self._part_stock_allocated
+
+    @GObject.Property(type=int)
+    def part_stock_planned(self):
+        return self._part_stock_planned
+
+    @GObject.Property(type=int)
+    def part_stock_in_partion(self):
+        return self._part_stock_on_order
+
+    @GObject.Property(type=int)
+    def part_stock_for_sale(self):
+        return self._part_stock_for_sale
+
+    @GObject.Property(type=str)
+    def part_storage(self):
+        return self._part_storage
+
+    @GObject.Property(type=str)
+    def part_part_number(self):
+        return self._part_part_number
+
+    def set_parts_index(self, index, value):
+        self._part_parts_list[index] = value
+
+    def append_part(self, part_id, quantity):
+        self._part_parts_list.append([part_id, quantity])
+
+    def get_detail(self, name):
+        return getattr(self, name, None)
+
+    def set_detail(self, detail_name, value):
+        attributes = inspect.getmembers(self, lambda a: not inspect.isroutine(a))
+        for attr_name, _ in attributes:
+            if attr_name == f"_{detail_name}":
+                setattr(self, f"_{detail_name}", value)
+                return
+
+        raise ValueError(f"Invalid detail name: {detail_name}")
+
+    def __repr__(self):
+        text = "Part: "
+        return text + (self.part_id or "") + " " + (self.part_name or "no name") + " " + (self.part_description or "")
+
 class Product(GObject.Object):
     __gtype_name__ = "Product"
 
@@ -61,7 +186,8 @@ class Product(GObject.Object):
         self._product_stock_for_sale = None
         self._product_storage = None
         self._product_part_number = None
-        self._product_parts_list = []
+
+        self._product_parts_list = Gio.ListStore(item_type=Part)
 
     @GObject.Property(type=str)
     def product_stock_on_order(self):
@@ -152,11 +278,8 @@ class Product(GObject.Object):
     def parts_list(self):
         return self._product_parts_list
 
-    def set_parts_index(self, index, value):
-        self._product_parts_list[index] = value
-
-    def append_part(self, part_id, quantity):
-        self._product_parts_list.append([part_id, quantity])
+    def append_part(self, part):
+        self._product_parts_list.append(part)
 
     def get_detail(self, name):
         return getattr(self, name, None)
@@ -363,6 +486,26 @@ class InventarioWindow(Adw.ApplicationWindow):
     #
     # do not change the order of the item details in the Item class,
     # to change the order of the visualized column you can just change it in the following array
+
+    part_item_product_translation = [
+        ["part_id", "item_id", "product_id"],
+        ["part_category", "item_category", "product_category"],
+        ["part_name", "item_name", "product_name"],
+        ["part_description", "item_description", "product_description"],
+        ["part_package", "item_package", "product_package"],
+        ["part_part_number", "item_part_number", "product_part_number"],
+        ["part_cost", "item_cost", "product_cost"],
+        ["part_value", "item_value", "product_value"],
+        ["part_manufacturer", "item_manufacturer", "product_manufacturer"],
+        ["part_seller", "item_seller", "product_seller"],
+        ["part_storage", "item_storage", "product_storage"],
+        ["part_stock_reserved", "item_stock_reserved", "product_stock_reserved"],
+        ["part_stock_allocated", "item_stock_allocated", "product_stock_allocated"],
+        ["part_stock_planned", "item_stock_planned", "product_stock_planned"],
+        ["part_stock_on_order", "item_stock_on_order", "product_stock_on_order"],
+        ["part_stock_for_sale", "item_stock_for_sale", "product_stock_for_sale"],
+        ["part_datasheet", "item_datasheet", "product_datasheet"]
+    ]
 
     details_names = [
                     ["ID", "item_id", "STR"],
@@ -757,7 +900,6 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         self.action_bar.pack_end(self.products_column_visibility_button)
 
-
         self.navigation_select_page(self.last_page)
 
     def column_visibility_check_button(self, column, array):
@@ -926,7 +1068,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         elif self.last_page == self.products_index:
             self.selected_product = selection_model.get_selection().get_maximum()
             self.update_sidebar_product_info()
-            print(self.selected_product)
 
         elif self.last_page == self.low_stock_index:
             self.selected_item = selection_model.get_selection().get_maximum()
@@ -961,6 +1102,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 reader = csv.reader(file_content.splitlines())
 
                 product_detail_call_list = []
+                part_detail_call_list = []
 
                 for i, row in enumerate(reader):
                     if i == 0:
@@ -985,8 +1127,14 @@ class InventarioWindow(Adw.ApplicationWindow):
                                     is_custom_value_row = True
                                 except:
                                     pass
+                    elif i == 2:
+                        for i, value in enumerate(row):
+                            part_detail_call_list.append(value)
                     else:
-                        new_product.append_part(row[0], row[1])
+                        for i, value in enumerate(row):
+                            new_part = Part()
+                            new_part.set_detail(part_detail_call_list[i], value)
+                        new_product.append_part(new_part)
             self.products_model.append(new_product)
         try:
             open(preferences_path, 'r').read()
@@ -1097,7 +1245,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             open(items_list_path, 'w', newline='\n')
         except Exception as e:
             self.send_toast(str(e))
-            return
+            print(str(e))
         with open(items_list_path, 'w', newline='\n') as csvfile:
             writer = csv.writer(csvfile)
 
@@ -1116,22 +1264,22 @@ class InventarioWindow(Adw.ApplicationWindow):
         except Exception as e:
             self.send_toast(str(e))
             print(str(e))
-            return
         with open(preferences_path, 'w', newline='\n') as csvfile:
             writer = csv.writer(csvfile)
 
             column_view_row = [self.cv.get_columns()[index].get_visible() for index in range(len(self.details_names))]
             writer.writerow(column_view_row)
 
+            products_column_view_row = [self.products_cv.get_columns()[index].get_visible() for index in range(len(self.product_details_names))]
+            writer.writerow(products_column_view_row)
+
         for product in self.products_model:
             this_product_path = products_path + str(product.product_id) + ".csv"
-
             try:
                 open(this_product_path, 'w', newline='\n')
             except Exception as e:
                 self.send_toast(str(e))
                 print(str(e))
-                return
             with open(this_product_path, 'w', newline='\n') as csvfile:
                 writer = csv.writer(csvfile)
 
@@ -1141,9 +1289,13 @@ class InventarioWindow(Adw.ApplicationWindow):
                 product_row = [product.get_detail(self.product_details_names[index][1]) for index in range(len(self.product_details_names))]
                 writer.writerow(product_row)
 
-                for item in product.product_parts_list:
-                    item_row = item# [item.get_detail(self.details_names[index][1]) for index in range(len(self.details_names))]
-                    writer.writerow(item_row)
+                parts_column_view_row = [part_detail_name[0] for part_detail_name in self.part_item_product_translation]
+                writer.writerow(parts_column_view_row)
+                print(parts_column_view_row)
+
+                for part in product.product_parts_list:
+                    part_row = [item.get_detail(self.part_item_product_translation[index][0]) for index in range(len(self.part_item_product_translation))]
+                    writer.writerow(part_row)
 
         directory, file_name = os.path.split(inventory_path)
         self.subtitle_label.set_visible(True)
@@ -1280,6 +1432,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 self.selected_product = 0
                 if self.selected_product <= len(self.products_model):
                     self.selected_product = None
+            print(self.selected_product)
             self.update_sidebar_product_info()
             dialog.destroy()
 
@@ -1453,7 +1606,7 @@ class InventarioWindow(Adw.ApplicationWindow):
     def update_sidebar_product_info(self):
         product_index = self.selected_product
 
-        if len(self.model) == 0:
+        if len(self.model) == 0 or product_index == None:
             return
         if product_index > len(self.products_model):
             product_index = 0
@@ -1520,12 +1673,12 @@ class InventarioWindow(Adw.ApplicationWindow):
         box1.append(scrolled_window_product_parts)
         box1.append(bottom_buttons_box)
 
-        for part in product.product_parts_list:
+        for i in range(len(product.product_parts_list)):
+            part = product.product_parts_list[i]
             box6 = Gtk.Box()
-            box6.append(Gtk.Label(label=part[0], xalign=0, hexpand=True, margin_end=6, margin_start=6, margin_top=3, margin_bottom=3))
-            box6.append(Gtk.Label(label=part[1], xalign=1, hexpand=True, halign=Gtk.Align.FILL, margin_end=6))
+            box6.append(Gtk.Label(label=part.part_name, xalign=0, hexpand=True, margin_end=6, margin_start=6, margin_top=3, margin_bottom=3))
+            box6.append(Gtk.Label(label=part.part_description, xalign=1, hexpand=True, halign=Gtk.Align.FILL, margin_end=6))
             self.sidebar_product_parts_list_box.append(box6)
-            print(part[0])
 
         for i in range(len(self.product_details_names)):
             box = Gtk.FlowBox(margin_start=6, margin_end=6, max_children_per_line=2,
@@ -2056,11 +2209,11 @@ class InventarioWindow(Adw.ApplicationWindow):
         possible_parts_list = []
 
         for item in self.model:
-            item_name_in_list = (item.item_value or "") + " " + (item.item_name or "") + " " + (item.item_package or "")
+            item_name_in_list = str(item.item_value or "") + " " + str(item.item_name or "") + " " + str(item.item_package or "")
             possible_parts_list.append(item_name_in_list)
 
         for product in self.products_model:
-            product_name_in_list = (product.product_name or "") + " " + (product.product_package or "")
+            product_name_in_list = str(product.product_name or "") + " " + str(product.product_package or "")
             possible_parts_list.append(product_name_in_list)
 
         custom_info_box.append(box7)
@@ -2116,11 +2269,28 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         parts = 0
         while parts_list_box.get_row_at_index(parts) != None:
-            part_id = parts_list_box.get_row_at_index(parts).get_child().get_first_child().get_selected_item().get_string()
             quantity = parts_list_box.get_row_at_index(parts).get_child().get_first_child().get_next_sibling().get_value()
-            print(part_id)
-            if part_id != "" and quantity != "":
-                new_product.append_part(part_id, quantity)
+            part_index = parts_list_box.get_row_at_index(parts).get_child().get_first_child().get_selected()
+
+            if part_index == "" or quantity == "":
+                continue
+
+            new_part = Part()
+
+            if part_index < len(self.model):
+                item = self.model[part_index]
+                for detail in self.part_item_product_translation:
+                    value = item.get_detail(detail[1])
+                    new_part.set_detail(detail[0], value)
+                new_part.set_detail("used_quantity", quantity)
+
+            else:
+                part = self.products_model[part_index - len(self.model)]
+                for detail in self.part_item_product_translation:
+                    value = part.get_detail(detail[2])
+                    new_part.set_detail(detail[0], value)
+                new_part.set_detail("used_quantity", quantity)
+            new_product.append_part(new_part)
             parts += 1
 
         # value = list_box.get_row_at_index(index).get_child().get_first_child().get_next_sibling().get_text()
@@ -2128,7 +2298,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         self.products_model.append(new_product)
         self.selected_product = len(self.products_model) - 1
-        self.update_sidebar_item_info()
+        self.update_sidebar_product_info()
         window.destroy()
 
     def add_new_item_dialog(self, args=None):
@@ -2328,11 +2498,9 @@ class InventarioWindow(Adw.ApplicationWindow):
         if self.settings.get_boolean("enable-horizontal-scrolling"):
             self.content_scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.action_bar_revealer.set_reveal_child(True)
-        #if self.model != None:
-        #self.update_sidebar_item_info()
-        self.cv.get_model().select_item(self.selected_item, True)
 
-        #self.products_box.append(self.products_cv)
+        self.products_cv.get_model().select_item(self.selected_product, True)
+
         self.update_sidebar_product_info()
 
     def show_invoice(self, arg=None):
