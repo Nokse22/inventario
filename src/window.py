@@ -691,8 +691,8 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.subtitle_label = Gtk.Label(visible=False,label="~/", css_classes=["caption"], opacity=0.6, ellipsize=1)
         title_box.append(self.subtitle_label)
 
-        content_headerbar = Gtk.HeaderBar(css_classes=["flat"], title_widget=title_box, show_title_buttons=False)
-        self.content_box.append(content_headerbar)
+        self.content_headerbar = Gtk.HeaderBar(css_classes=["flat"], title_widget=title_box, show_title_buttons=False)
+        self.content_box.append(self.content_headerbar)
 
         self.search_button_toggle = Gtk.ToggleButton()
         self.search_button_toggle.set_icon_name("pan-down-symbolic")
@@ -754,7 +754,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         toggle_sidebar_button = Gtk.Button(icon_name="go-previous-symbolic", visible=False)
         toggle_sidebar_button.connect("clicked", self.toggle_sidebar)
-        content_headerbar.pack_start(toggle_sidebar_button)
+        self.content_headerbar.pack_start(toggle_sidebar_button)
 
         menu_button = Gtk.MenuButton()
         menu_button.set_icon_name("open-menu-symbolic")
@@ -772,9 +772,9 @@ class InventarioWindow(Adw.ApplicationWindow):
         delete_item_button.set_icon_name("user-trash-symbolic")
         delete_item_button.connect("clicked", self.on_delete_selected_button_clicked)
 
-        content_headerbar.pack_end(menu_button)
-        #content_headerbar.pack_start(self.search_revealer)
-        content_headerbar.pack_start(self.search_button_toggle)
+        self.content_headerbar.pack_end(menu_button)
+        #self.content_headerbar.pack_start(self.search_revealer)
+        self.content_headerbar.pack_start(self.search_button_toggle)
 
         self.content_scrolled_window = Gtk.ScrolledWindow(vexpand=True, overlay_scrolling=True)
         self.content_scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -1656,7 +1656,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         bottom_buttons_box.append(add_this_button)
         bottom_buttons_box.append(remove_this_button)
 
-        #edit_button.connect("clicked", self.show_edit_product_dialog)
+        edit_button.connect("clicked", self.show_edit_product_dialog)
         #add_this_button.connect("clicked", self.on_add_stock_to_product_button_clicked)
         #remove_this_button.connect("clicked", self.on_remove_one_product_button_clicked)
 
@@ -1675,6 +1675,8 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         for detail in self.part_item_product_translation:
             self.add_part_column_view_column(detail[3], detail[0], parts_column_view)
+
+        self.add_part_column_view_column("Used", "used_quantity", parts_column_view)
 
         scrolled_window_product_parts = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
         scrolled_window_product_parts.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
@@ -1865,6 +1867,148 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.selected_product = row_index
             self.show_edit_product_dialog()
             self.update_sidebar_product_info()
+
+    def show_edit_product_dialog(self, btn=None):
+        print("show_edit_product_dialog")
+        product_index = self.selected_product
+        if product_index < len(self.model):
+            product = self.products_selection_model.get_item(self.selected_product).get_item()
+        else:
+            return
+
+        edit_product_window = Adw.Window(resizable=True)
+        product_name = product.product_name
+        if product_name != None:
+            edit_product_window.set_title("Edit " + product_name + " " + product.product_id)
+        else:
+            edit_product_window.set_title("Edit " + product.product_id)
+        edit_product_window.set_default_size(600, 700)
+        edit_product_window.set_modal(True)
+        edit_product_window.set_transient_for(self)
+        box = Gtk.Box(orientation=1, vexpand=True)
+        box.append(Adw.HeaderBar(css_classes=["flat"]))
+        list_box_add = Gtk.ListBox(selection_mode = 0, vexpand=True, margin_end=6)
+        scrolled_window = Gtk.ScrolledWindow(margin_start=6, margin_top=6, margin_bottom=6, hexpand=True)
+        scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled_window.set_child(list_box_add)
+        box4 = Gtk.Box(spacing=6, margin_start=6, margin_end=6, css_classes=["card"])
+        box4.append(scrolled_window)
+        box.append(box4)
+
+        box3 = Gtk.Box(spacing=6, margin_start=6, margin_end=6, homogeneous=True)
+        cancel_button = Gtk.Button(label=_("Cancel"), hexpand=True, margin_top=6, margin_bottom=6)
+        cancel_button.connect("clicked", self.quit_window, edit_product_window)
+        add_button = Gtk.Button(label=_("Edit"), hexpand=True, margin_top=6, margin_bottom=6, css_classes=["suggested-action"])
+        add_button.connect("clicked", self.edit_existing_product, list_box_add, product, edit_product_window)
+        box3.append(cancel_button)
+        box3.append(add_button)
+        box.append(box3)
+
+        for i in range(len(self.product_details_names)):
+            box2 = Gtk.Box(homogeneous=True, margin_end=4, margin_start=4)
+            list_box_add.append(box2)
+            box2.append(Gtk.Label(label=self.product_details_names[i][0], xalign=0,
+                    hexpand=True, name=self.product_details_names[i][1]))
+            value = product.get_detail(self.product_details_names[i][1])
+            if self.product_details_names[i][2] == "STR":
+                box2.append(Gtk.Label(label=value, hexpand=True, margin_top=4,
+                        margin_bottom=4, xalign=0, name=self.product_details_names[i][2]))
+            elif self.product_details_names[i][2] == "int":
+                spin_button = Gtk.SpinButton(climb_rate=1, hexpand=True, margin_top=4,
+                        margin_bottom=4, name=self.product_details_names[i][2])
+                spin_button.set_adjustment(Gtk.Adjustment(step_increment=1, lower=0, value=0, upper=100000000))
+                box2.append(spin_button)
+                if value != None:
+                    spin_button.set_value(float(value))
+            elif self.product_details_names[i][2] == "cost":
+                spin_button = Gtk.SpinButton(climb_rate=1, digits=2, hexpand=True,
+                        margin_top=4, margin_bottom=4, name=self.product_details_names[i][2])
+                spin_button.set_adjustment(Gtk.Adjustment(step_increment=0.01, lower=0, value=0, upper=100000000))
+                box2.append(spin_button)
+                if value != None:
+                    spin_button.set_value(float(value))
+            elif self.product_details_names[i][2] == "DATE":
+                box2.append(Gtk.Label(label=value, hexpand=True, margin_top=4, margin_bottom=4,
+                        xalign=0, name=self.product_details_names[i][2]))
+            elif self.product_details_names[i][2] == "date":
+                box2.append(Gtk.Label(label=self.get_formatted_date(), hexpand=True, margin_top=4,
+                        margin_bottom=4, xalign=0, name=self.product_details_names[i][2]))
+            elif self.product_details_names[i][2] == "cat":
+                drop_down = Gtk.DropDown.new_from_strings(self.products_categories)
+                drop_down.set_name(name=self.product_details_names[i][2])
+                #drop_down.set_size_request(100, 0)
+                #drop_down.set_enable_search(True)
+                drop_down.set_margin_top(4)
+                drop_down.set_margin_bottom(4)
+                drop_down.set_selected(self.find_index(self.products_categories, value))
+
+                # category_drop_down = Gtk.ComboBoxText(margin_top=4, margin_bottom=4,margin_end=4,
+                #         name=self.product_details_names[i][2])
+                # for category in self.products_categories:
+                #     category_drop_down.append_text(category)
+                box2.append(drop_down)
+                #category_drop_down.set_active(self.find_index(self.products_categories, value))
+
+            elif self.product_details_names[i][2] == "value":
+                spin_button = Gtk.SpinButton(climb_rate=1, digits=2, hexpand=True, margin_top=4, margin_bottom=4)
+                spin_button.set_width_chars(6)
+                spin_button.set_adjustment(Gtk.Adjustment(step_increment=0.1, lower=0, value=0, upper=100000000))
+                number, unit = self.split_string_with_unit(value)
+                spin_button.set_value(float(number))
+                drop_down = Gtk.DropDown.new_from_strings(self.units_of_measure)
+                drop_down.set_size_request(100, 0)
+                drop_down.set_enable_search(True)
+                drop_down.set_margin_start(6)
+                drop_down.set_margin_top(4)
+                drop_down.set_margin_bottom(4)
+                drop_down.set_selected(self.find_index(self.units_of_measure, unit))
+                box4 = Gtk.Box(name=self.product_details_names[i][2])
+                box4.append(spin_button)
+                box4.append(drop_down)
+                box2.append(box4)
+            else:
+                entry = Gtk.Entry(placeholder_text=_("Write here"),hexpand=True, margin_top=4,
+                        margin_bottom=4, name=self.product_details_names[i][2])
+                box2.append(entry)
+                if value != None:
+                    entry.set_text(str(value))
+        edit_product_window.set_content(box)
+        edit_product_window.present()
+
+    def edit_existing_product(self, btn, list_box, product, window):
+        print("edit_existing_product")
+        for i in range(len(self.product_details_names)):
+            value_widget_row = list_box.get_row_at_index(i)
+
+            if value_widget_row != None:
+                value_widget = value_widget_row.get_child().get_first_child().get_next_sibling()
+                detail_call = value_widget_row.get_child().get_first_child().get_name()
+                detail_type = value_widget.get_name()
+
+                if detail_call != None and detail_type != None:
+                    if detail_type == "STR":
+                        value = value_widget.get_label()
+                    elif detail_type == "int":
+                        value = int(value_widget.get_value())
+                    elif detail_type == "cost":
+                        value = float(value_widget.get_value())
+                    elif detail_type == "value":
+                        value = str(round(float(value_widget.get_first_child().get_value()), 2))
+                        unit_index = value_widget.get_first_child().get_next_sibling().get_selected()
+                        value += " " + str(self.units_of_measure[unit_index])
+                    elif detail_type == "cat":
+                        value = self.products_categories[value_widget.get_selected()]
+                    else:
+                        value = value_widget.get_text()
+
+                    if value == 0 or value == "0" or value == "0.0":
+                        value = None
+
+                    product.set_detail(detail_call, value)
+        self.update_sidebar_product_info()
+        self.send_toast(_("Product successfully edited"))
+
+        window.destroy()
 
     def show_edit_item_dialog(self, btn=None):
         print("show_edit_item_dialog")
@@ -2103,6 +2247,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             return 1
 
     def show_items(self):
+        self.content_headerbar.set_show_title_buttons(False)
         self.search_button_toggle.set_visible(True)
         self.column_visibility_button.set_visible(True)
         self.products_column_visibility_button.set_visible(False)
@@ -2515,6 +2660,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     def show_products(self):
         print("show products")
+        self.content_headerbar.set_show_title_buttons(False)
         self.column_visibility_button.set_visible(False)
         self.products_column_visibility_button.set_visible(True)
         self.search_button_toggle.set_visible(False)
@@ -2540,6 +2686,8 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     def show_invoice(self, arg=None):
         print("show invoices")
+        self.content_headerbar.set_show_title_buttons(True)
+        self.split_view.set_collapsed(True)
         self.search_button_toggle.set_visible(False)
         self.search_revealer.set_reveal_child(False)
         self.item_info_revealer.set_reveal_child(False)
@@ -2655,6 +2803,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     def show_production(self):
         print("show_production")
+        self.content_headerbar.set_show_title_buttons(False)
         self.search_button_toggle.set_visible(False)
         self.search_revealer.set_reveal_child(False)
         self.item_info_revealer.set_reveal_child(False)
@@ -2675,6 +2824,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         #self.content_scrolled_window.set_child(self.products_cv)
 
     def show_low_stock(self):
+        self.content_headerbar.set_show_title_buttons(False)
         self.search_button_toggle.set_visible(True)
         self.column_visibility_button.set_visible(True)
         self.products_column_visibility_button.set_visible(False)
@@ -2692,6 +2842,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.row_filter.changed(Gtk.FilterChange.DIFFERENT)
 
     def show_out_of_stock(self):
+        self.content_headerbar.set_show_title_buttons(False)
         self.search_button_toggle.set_visible(True)
         self.column_visibility_button.set_visible(True)
         self.products_column_visibility_button.set_visible(False)
@@ -2709,6 +2860,8 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.row_filter.changed(Gtk.FilterChange.DIFFERENT)
 
     def show_dashboard(self):
+        self.split_view.set_collapsed(True)
+        self.content_headerbar.set_show_title_buttons(True)
         self.search_button_toggle.set_visible(False)
         self.search_revealer.set_reveal_child(False)
         self.content_scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
