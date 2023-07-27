@@ -34,8 +34,9 @@ Not all features will be implemented, it's just a list of ideas
 - [ ] selected page
     - [x] item details
     - [x] buy button
+    - [x] datasheet button
     - [x] product info
-    - [ ] product parts
+    - [x] product parts
     - [ ] more info
 - [x] sorting
   - [x] alphabetical sorting
@@ -51,6 +52,7 @@ Not all features will be implemented, it's just a list of ideas
   - [x] deleting
   - [x] saving
   - [ ] editing
+  - [ ] parts binding
   - [ ] adding new parts
   - [ ] in production and progress tracking
 - [x] custom info for every item with saving/loading from file
@@ -59,12 +61,11 @@ Not all features will be implemented, it's just a list of ideas
 - [ ] export to CSV or other formats
 - [ ] import from CSV or JSON
 - [ ] dashboard with customizable widgets
-- [ ] low stock
-- [ ] data sheet file/URL linking
+- [x] low stock
+- [x] out of stock
+- [x] data sheet file/URL linking
 - [ ] barcode scanning
 - [ ] bill/invoice generation
-- [ ] remove items from BOM
-- [ ] products list with items linked
 - [ ] threading for loading files
 
 ## Installation
