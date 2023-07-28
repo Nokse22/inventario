@@ -817,8 +817,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         for i in range(len(self.sidebar_options)):
             self.sidebar_navigation_listBox.append(Gtk.Label(label = self.sidebar_options[i], xalign=0))
 
-        self.show_dashboard()
-
         for detail in self.details_names:
             self.filter_parameters.append(["", detail[1]])
 
@@ -1078,6 +1076,12 @@ class InventarioWindow(Adw.ApplicationWindow):
         elif self.last_page == self.low_stock_index:
             self.selected_item = selection_model.get_selection().get_maximum()
             self.update_sidebar_item_info()
+
+        elif self.last_page == self.out_of_stock_index:
+            self.selected_item = selection_model.get_selection().get_maximum()
+            self.update_sidebar_item_info()
+
+        print("selection changed")
 
     def read_inventory_file(self, inventory_path):
         self.model.remove_all()
@@ -1450,7 +1454,10 @@ class InventarioWindow(Adw.ApplicationWindow):
     def on_delete_selected_button_clicked(self, btn):
         if self.last_page == self.parts_index:
             self.delete_selected_item()
-
+        elif self.last_page == self.low_stock_index:
+            self.delete_selected_item()
+        elif self.last_page == self.out_of_stock_index:
+            self.delete_selected_item()
         elif self.last_page == self.products_index:
             self.delete_selected_product()
 
@@ -1615,10 +1622,16 @@ class InventarioWindow(Adw.ApplicationWindow):
     def update_sidebar_product_info(self):
         product_index = self.selected_product
 
-        if len(self.model) == 0 or product_index == None:
+        info_page_status_page = Adw.StatusPage(title="Info Page",
+                icon_name="view-list-bullet-symbolic", hexpand=True, vexpand=True,
+                description="There are no products to display")
+
+        if len(self.products_model) == 0 or product_index == None:
+            self.info_scrolled_window_product_custom.set_child(info_page_status_page)
             return
         if product_index > len(self.products_model):
             product_index = 0
+
         self.selected_product = product_index
         self.sidebar_product_info_list_box = Gtk.ListBox(show_separators=True, selection_mode=0,
                 margin_start=6, margin_end=6, vexpand=True, hexpand=True)#, width_request=300)
@@ -1721,6 +1734,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 text = "..."
             box.append(Gtk.Label(ellipsize=3, label=text, xalign=1, hexpand=True, halign=Gtk.Align.FILL))
             self.sidebar_product_info_list_box.append(box)
+        print("updated product info")
 
     def add_part_column_view_column(self, detail_name, detail_call, column_view):
         factory = Gtk.SignalListItemFactory()
@@ -1738,14 +1752,17 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     def update_sidebar_item_info(self):
         item_index = self.selected_item
-        if item_index == None:
-            self.item_info_revealer.set_reveal_child(False)
-            return
 
-        if len(self.model) == 0:
+        info_page_status_page = Adw.StatusPage(title="Info Page",
+                icon_name="view-list-bullet-symbolic", hexpand=True, vexpand=True,
+                description="There are no items to display")
+
+        if len(self.model) == 0 or item_index == None:
+            self.info_scrolled_window_product_custom.set_child(info_page_status_page)
             return
-        if item_index > len(self.model):
+        if item_index >= len(self.model):
             item_index = 0
+
         self.selected_item = item_index
         self.sidebar_item_info_list_box = Gtk.ListBox(show_separators=True, selection_mode=0,
                 margin_start=6, margin_end=6, vexpand=True, hexpand=True)#, width_request=300)
@@ -1765,17 +1782,10 @@ class InventarioWindow(Adw.ApplicationWindow):
         description = item.item_description or "There is no description"
 
         box5.append(Gtk.Label(label=name, margin_top=2, margin_bottom=6, css_classes=["title-1"], xalign=0, margin_start=6))
-        box5.append(Gtk.Label(label=description, ellipsize=0, margin_top=2, margin_bottom=6, css_classes=["title-4"], xalign=0, margin_start=6))
+        box5.append(Gtk.Label(label=description, ellipsize=3, margin_top=2, margin_bottom=6, css_classes=["title-4"], xalign=0, margin_start=6))
         box5.append(Gtk.Separator())
 
-        #infoCarousel = Adw.Carousel(allow_scroll_wheel=False)
         box1.append(box5)
-        #carouselIndicator = Adw.CarouselIndicatorLines(carousel=infoCarousel, margin_top=4)
-        #box1.append(carouselIndicator)
-
-        #box5.append(carouselIndicator)
-        #box5.append(Gtk.Label(label="General Info", margin_top=2, margin_bottom=6, css_classes=["title-4"]))
-        #box5.append(Gtk.Separator())
         box5.append(sidebar_scrolled_window_item_info)
 
         self.sidebar_item_custom_values_list_box = Gtk.ListBox(show_separators=True, selection_mode=0,
@@ -1787,10 +1797,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         box5.append(Gtk.Label(label="Custom Info", margin_top=2, margin_bottom=6, css_classes=["title-4"]))
         box5.append(Gtk.Separator())
         box5.append(sidebar_scrolled_window_item_custom)
-
-        #infoCarousel.append(box5)
-
-        #box1.append(infoCarousel)
 
         item_id=self.model[item_index].item_id
 
@@ -1854,6 +1860,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 text = "..."
             box.append(Gtk.Label(ellipsize=3, label=text, xalign=1, hexpand=True, halign=Gtk.Align.FILL))
             self.sidebar_item_info_list_box.append(box)
+        print("updated item info")
 
     def on_column_view_activated(self, cv, row_index):
         if self.last_page == self.parts_index:
@@ -2247,6 +2254,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             return 1
 
     def show_items(self):
+        self.split_view.set_collapsed(False)
         self.content_headerbar.set_show_title_buttons(False)
         self.search_button_toggle.set_visible(True)
         self.column_visibility_button.set_visible(True)
@@ -2258,10 +2266,12 @@ class InventarioWindow(Adw.ApplicationWindow):
         if self.settings.get_boolean("enable-horizontal-scrolling"):
             self.content_scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.action_bar_revealer.set_reveal_child(True)
-        #if self.model != None:
-        #self.selected_item = 0
+
+        if self.selected_item != None:
+            self.cv.get_model().select_item(self.selected_item, True)
+        self.row_filter.changed(Gtk.FilterChange.DIFFERENT)
+        self.selected_item = self.selection_model.get_selection().get_maximum()
         self.update_sidebar_item_info()
-        self.cv.get_model().select_item(self.selected_item, True)
 
     def _on_factory_setup(self, factory, list_item):
         cell = Gtk.Inscription()
@@ -2655,11 +2665,11 @@ class InventarioWindow(Adw.ApplicationWindow):
     def on_navigation_row_activated(self, list_box, exc):
         selected_row = list_box.get_selected_row()
 
-        self.split_view.set_collapsed(False)
         self.navigation_select_page(selected_row.get_index())
 
     def show_products(self):
         print("show products")
+        self.split_view.set_collapsed(False)
         self.content_headerbar.set_show_title_buttons(False)
         self.column_visibility_button.set_visible(False)
         self.products_column_visibility_button.set_visible(True)
@@ -2670,18 +2680,14 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.products_box = Gtk.Box(margin_start=10, margin_top=10, margin_bottom=10, margin_end=10)
         #self.content_scrolled_window.set_child(self.products_box)
 
-        products_status_page = Adw.StatusPage(title="Work in progress",
-                icon_name="package-x-generic-symbolic", hexpand=True, vexpand=True,
-                description="Products are still not supported")
-
         self.content_scrolled_window.set_child(None)
         self.content_scrolled_window.set_child(self.products_cv)
         if self.settings.get_boolean("enable-horizontal-scrolling"):
             self.content_scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.action_bar_revealer.set_reveal_child(True)
 
-        self.products_cv.get_model().select_item(self.selected_product, True)
-
+        if self.selected_product != None:
+            self.products_cv.get_model().select_item(self.selected_product, True)
         self.update_sidebar_product_info()
 
     def show_invoice(self, arg=None):
@@ -2708,7 +2714,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         info_page_status_page = Adw.StatusPage(title="Work in progress",
                 icon_name="info-symbolic", hexpand=True, vexpand=True,
-                description="Info page")
+                description="Invoice info page")
 
         self.info_scrolled_window_product_custom.set_child(info_page_status_page)
 
@@ -2788,6 +2794,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.delete_filter_rows()
         elif selected_row.get_child().get_label() == "Products":
             self.show_products()
+            #self.update_sidebar_product_info()
             self.delete_filter_rows()
         elif selected_row.get_child().get_label() == "Invoice":
             self.show_invoice()
@@ -2803,6 +2810,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     def show_production(self):
         print("show_production")
+        self.split_view.set_collapsed(False)
         self.content_headerbar.set_show_title_buttons(False)
         self.search_button_toggle.set_visible(False)
         self.search_revealer.set_reveal_child(False)
@@ -2813,7 +2821,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         info_page_status_page = Adw.StatusPage(title="Work in progress",
                 icon_name="info-symbolic", hexpand=True, vexpand=True,
-                description="Info page")
+                description="Production info page")
 
         wip_status_page = Adw.StatusPage(title="Work in progress",
                 icon_name="build-alt-symbolic", hexpand=True, vexpand=True,
@@ -2824,6 +2832,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         #self.content_scrolled_window.set_child(self.products_cv)
 
     def show_low_stock(self):
+        self.split_view.set_collapsed(False)
         self.content_headerbar.set_show_title_buttons(False)
         self.search_button_toggle.set_visible(True)
         self.column_visibility_button.set_visible(True)
@@ -2837,11 +2846,14 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.content_scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.action_bar_revealer.set_reveal_child(True)
 
-        self.update_sidebar_item_info()
-        self.cv.get_model().select_item(self.selected_item, True)
+        if self.selected_item != None:
+            self.cv.get_model().select_item(self.selected_item, True)
         self.row_filter.changed(Gtk.FilterChange.DIFFERENT)
+        self.selected_item = self.selection_model.get_selection().get_maximum()
+        self.update_sidebar_item_info()
 
     def show_out_of_stock(self):
+        self.split_view.set_collapsed(False)
         self.content_headerbar.set_show_title_buttons(False)
         self.search_button_toggle.set_visible(True)
         self.column_visibility_button.set_visible(True)
@@ -2855,9 +2867,12 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.content_scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.action_bar_revealer.set_reveal_child(True)
 
-        self.update_sidebar_item_info()
-        self.cv.get_model().select_item(self.selected_item, True)
+
+        if self.selected_item != None:
+            self.cv.get_model().select_item(self.selected_item, True)
         self.row_filter.changed(Gtk.FilterChange.DIFFERENT)
+        self.selected_item = self.selection_model.get_selection().get_maximum()
+        self.update_sidebar_item_info()
 
     def show_dashboard(self):
         self.split_view.set_collapsed(True)
@@ -2875,7 +2890,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         info_page_status_page = Adw.StatusPage(title="Work in progress",
                 icon_name="info-symbolic", hexpand=True, vexpand=True,
-                description="Info page")
+                description="Dashboard info page")
 
         self.info_scrolled_window_product_custom.set_child(info_page_status_page)
 
@@ -3052,5 +3067,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         if combo.get_active_text() == self.dashboard_widgets[0]:
             grid.attach(self.simple_widget, 0, 0, x.get_value(), y.get_value())
             
+
 
 
