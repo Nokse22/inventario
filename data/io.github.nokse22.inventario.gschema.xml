@@ -28,5 +28,8 @@
 	  <key name="enable-columns-separators" type="b">
       <default>true</default>
     </key>
+	  <key name="currency" type="s">
+      <default>'€'</default>
+    </key>
 	</schema>
 </schemalist>

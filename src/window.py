@@ -35,6 +35,52 @@ import time
 import string
 import webbrowser
 
+class ProductProduction(GObject.Object):
+    __gtype_name__ = "ProductProduction"
+
+    def __init__(self, progress):
+        super().__init__()
+
+        self._progress = progress
+        self._name = "Prova"
+        self._id = "ABC12"
+        self._description = "A simple description"
+
+    def append_value(self, value):
+        self._columns.append(value)
+
+    def get_name(self):
+        return self._name
+
+    def get_description(self):
+        return self._description
+
+    def get_id(self):
+        return self._id
+
+    def get_progress(self):
+        return self._progress
+
+class ImportItem(GObject.Object):
+    __gtype_name__ = "ImportItem"
+
+    def __init__(self):
+        super().__init__()
+
+        self._columns = []
+
+    def get_value(self, index):
+        return self._columns[index]
+
+    def append_value(self, value):
+        self._columns.append(value)
+
+    def __repr__(self):
+        text = ""
+        for detail in self._columns:
+            text += " " + str(detail)
+        return text
+
 class Part(GObject.Object):
     __gtype_name__ = "Part"
 
@@ -576,6 +622,13 @@ class InventarioWindow(Adw.ApplicationWindow):
                     ["Created on", "product_creation", "DATE"],
                     ["Modified on", "product_modification", "date"],
                     ]
+
+    production_columns_names = [
+            ["ID", "id", "str"],
+            ["Name", "name", "str"],
+            ["Description", "description", "str"],
+            ["Progress", "progress", "progress"]
+    ]
 
     details_lenght = len(details_names)
 
@@ -1149,7 +1202,6 @@ class InventarioWindow(Adw.ApplicationWindow):
                         new_part = Part()
                         for i, value in enumerate(row):
                             new_part.set_detail(part_detail_call_list[i], value)
-                        print(new_part)
                         new_product.append_part(new_part)
             self.products_model.append(new_product)
         try:
@@ -1453,10 +1505,8 @@ class InventarioWindow(Adw.ApplicationWindow):
                     self.selected_product = None
                 else:
                     self.selected_product = 0
-            print(self.selected_product)
             self.update_sidebar_product_info()
             dialog.destroy()
-            print(self.selected_product)
 
             self.send_toast("The item has been deleted")
 
@@ -1519,33 +1569,6 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     def read_json(self):
         pass
-
-    def read_csv(self, file_content):
-        reader = csv.reader(file_content.splitlines())
-        for i, row in enumerate(reader):
-            if i == 0:
-                for i, value in enumerate(row):
-                    if value == "False":
-                        self.cv.get_columns()[i].set_visible(False)
-            else:
-                new_item = Item(self.details_lenght)
-                for index, value in enumerate(row):
-                    if value:
-                        try:
-                            type_info = self.details_names[index][2]
-                            detail_name = self.details_names[index][1]
-                            if type_info == "str" or type_info == "STR":
-                                new_value = str(value)
-                            elif type_info == "int":
-                                new_value = int(value)
-                            elif type_info == "cost":
-                                new_value = float(value)
-                            else:
-                                continue
-                            new_item.assign_value(detail_name, new_value)
-                        except (ValueError, TypeError):
-                            pass
-                self.model.append(new_item)
 
     def on_screen_changed(self, window):
         settings.set_int("window-width", window.get_allocated_width())
@@ -2283,26 +2306,55 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.selected_item = self.selection_model.get_selection().get_maximum()
         self.update_sidebar_item_info()
 
-    def _on_factory_setup(self, factory, list_item):
-        cell = Gtk.Inscription()
-        cell._binding = None
-        list_item.set_child(cell)
+    def _on_factory_setup(self, factory, list_item, detail_type = None):
+        if detail_type == "progress":
+            bar = Gtk.LevelBar()
+            list_item.set_child(bar)
+        else:
+            label = Gtk.Label(xalign=0, ellipsize=0, width_request=100)
+            list_item.set_child(label)
+
+        # cell = Gtk.Inscription()
+        # cell._binding = None
+        # list_item.set_child(cell)
 
     def _on_factory_bind(self, factory, list_item, what):
-        cell = list_item.get_child()
+        label = list_item.get_child()
         item = list_item.get_item().get_item()
-        try:
-            item.bind_property(what, cell, "text", GObject.BindingFlags.SYNC_CREATE)
-        except:
-            pass
+        if what != None:
+            detail = item.get_detail(what)
+            if detail != None:
+                if what == "item_cost":
+                    detail = str(detail) + " €"
+                elif "category" in what:
+                    if detail in "ELECTRONICS":
+                        label.add_css_class("accent")
+                        label.add_css_class("title-3")
+                    elif detail in "MECHANICAL":
+                        label.add_css_class("success")
+                        label.add_css_class("title-3")
+                    elif detail in "CONSUMABLE":
+                        label.add_css_class("warning")
+                        label.add_css_class("title-3")
+                label.set_label(str(detail))
         else:
-            cell._binding = item.bind_property(what, cell, "text", GObject.BindingFlags.SYNC_CREATE)
+            label.set_label("")
+        # cell = list_item.get_child()
+        # item = list_item.get_item().get_item()
+        # try:
+        #     item.bind_property(what, cell, "text", GObject.BindingFlags.SYNC_CREATE)
+        # except:
+        #     pass
+        # else:
+        #     cell._binding = item.bind_property(what, cell, "text", GObject.BindingFlags.SYNC_CREATE)
 
     def _on_factory_unbind(self, factory, list_item, what):
-        cell = list_item.get_child()
-        if cell._binding:
-            cell._binding.unbind()
-            cell._binding = None
+        # cell = list_item.get_child()
+        # if cell._binding:
+        #     cell._binding.unbind()
+        #     cell._binding = None
+        label = list_item.get_child()
+        label.set_text("")
 
     def _on_factory_teardown(self, factory, list_item):
         cell = list_item.get_child()
@@ -2405,7 +2457,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         box7.append(label)
         box7.append(add_custom_info_button)
 
-        possible_parts_list = []
+        possible_parts_list = Gtk.StringList()
 
         for item in self.model:
             item_name_in_list = str(item.item_value or "") + " " + str(item.item_name or "") + " " + str(item.item_package or "")
@@ -2433,7 +2485,8 @@ class InventarioWindow(Adw.ApplicationWindow):
         box2 = Gtk.Box(margin_end=4, margin_start=6, margin_top=4, margin_bottom=4, spacing=6)
         list_box.append(box2)
         name = "Custom info"
-        part_drop_down = Gtk.DropDown.new_from_strings(parts_list)
+        part_drop_down = Gtk.DropDown()
+        part_drop_down.set_model(parts_list)
         part_drop_down.set_enable_search(True)
         part_drop_down.set_hexpand(True)
         box2.append(part_drop_down)
@@ -2686,9 +2739,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.search_button_toggle.set_visible(False)
         self.search_revealer.set_reveal_child(False)
         self.item_info_revealer.set_reveal_child(False)
-        self.action_bar_revealer.set_transition_duration(0)
-        self.action_bar_revealer.set_reveal_child(False)
-        self.action_bar_revealer.set_transition_duration(250)
         self.products_box = Gtk.Box(margin_start=10, margin_top=10, margin_bottom=10, margin_end=10)
         #self.content_scrolled_window.set_child(self.products_box)
 
@@ -2846,7 +2896,62 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         self.info_scrolled_window_product_custom.set_child(info_page_status_page)
         self.content_scrolled_window.set_child(wip_status_page)
-        #self.content_scrolled_window.set_child(self.products_cv)
+
+        production_model = Gio.ListStore(item_type=ProductProduction)
+
+        production_1 = ProductProduction(0.5)
+
+        production_model.append(production_1)
+        # Items column view
+
+        production_cv = Gtk.ColumnView(single_click_activate=False, reorderable=True, css_classes=["flat"])
+
+        # ListStore -> FilterListModel -> TreeListModel -> SortListModel -> SingleSelection
+
+        production_cv.set_show_column_separators(self.settings.get_boolean("enable-columns-separators"))
+        production_cv.set_show_row_separators(self.settings.get_boolean("enable-rows-separators"))
+
+        production_tree_model = Gtk.TreeListModel.new(production_model, False, True, self.model_func)
+        production_tree_sorter = Gtk.TreeListRowSorter.new(production_cv.get_sorter())
+        production_sorter_model = Gtk.SortListModel(model=production_tree_model, sorter=production_tree_sorter)
+
+        production_selection_model = Gtk.SingleSelection.new(model=production_sorter_model)
+        #production_selection_model.connect("selection-changed", self.on_selection_changed)
+
+        production_cv.set_model(production_selection_model)
+        #production_cv.connect("activate", self.on_column_view_activated)
+
+        for column in self.production_columns_names:
+            self.add_production_column(column[0], column[1], column[2], production_cv)
+
+        self.content_scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        self.content_scrolled_window.set_child(production_cv)
+
+    def add_production_column(self, column_name, detail_call, detail_type, column_view):
+        factory = Gtk.SignalListItemFactory()
+        factory.connect("setup", self._on_factory_setup, detail_type)
+        factory.connect("bind", self._on_production_factory_bind, detail_call)
+        factory.connect("unbind", self._on_factory_unbind, detail_call)
+        factory.connect("teardown", self._on_factory_teardown)
+
+        col = Gtk.ColumnViewColumn(title=column_name, factory=factory, resizable=True)
+        sorter = Gtk.CustomSorter.new(self.sort_func, user_data=[detail_call, detail_type])
+        sorter.connect("changed", self.scroll_to_the_top)
+        col.set_sorter(sorter)
+        col.props.expand = True
+        column_view.append_column(col)
+
+    def _on_production_factory_bind(self, factory, list_item, what):
+        level_bar_or_label = list_item.get_child()
+        product = list_item.get_item().get_item()
+        if what == "progress":
+            level_bar_or_label.set_value(product.get_progress())
+        elif what == "name":
+            level_bar_or_label.set_label(product.get_name())
+        elif what == "id":
+            level_bar_or_label.set_label(product.get_id())
+        elif what == "description":
+            level_bar_or_label.set_label(product.get_description())
 
     def show_low_stock(self):
         self.split_view.set_collapsed(False)
@@ -2925,7 +3030,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         out_of_stock_widget.connect("clicked", self.on_go_to_out_of_stock_button_clicked)
         self.dashboard_box.append(out_of_stock_widget)
 
-        self.dashboard_box.append(self.dashboard_simple_widget("Value", str(self.get_inventory_value()) + " €"))
+        self.dashboard_box.append(self.dashboard_simple_widget("Value", str(self.get_inventory_value()) + " " + self.settings.get_string("currency")))
         self.dashboard_box.append(self.dashboard_progress_widget("Items to 100", len(self.model), 100))
 
     def on_go_to_low_stock_button_clicked(self, btn):
@@ -3105,7 +3210,165 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         if combo.get_active_text() == self.dashboard_widgets[0]:
             grid.attach(self.simple_widget, 0, 0, x.get_value(), y.get_value())
+
+    def open_import_window(self):
+        import_window = Adw.Window(resizable=False)
+        import_window.set_default_size(800, 700)
+        import_window.set_modal(True)
+        import_window.set_title(_("Import"))
+        import_window.set_transient_for(self)
+        box = Gtk.Box(orientation=1, vexpand=True)
+        box.append(Adw.HeaderBar(css_classes=["flat"]))
+        import_window.set_content(box)
+        scrolled_window = Gtk.ScrolledWindow(vexpand=True)
+        box.append(scrolled_window)
+
+        open_file_button = Gtk.Button(css_classes=["pill","suggested-action"],
+                label="Open File", halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, vexpand=True)
+        open_file_button.connect("clicked", self.open_file_to_import, import_window)
+        scrolled_window.set_child(open_file_button)
+
+        import_window.present()
+
+    def import_page_assign_columns(self, file_content, window):
+        box = Gtk.Box(orientation=1, vexpand=True)
+        box.append(Adw.HeaderBar(css_classes=["flat"]))
+        window.set_content(box)
+        scrolled_window = Gtk.ScrolledWindow(vexpand=True)
+
+        box.append(scrolled_window)
+
+        list_box = Gtk.ListBox(selection_mode = 0, margin_start=6, margin_end=6)
+        scrolled_window.set_child(list_box)
+
+        box.append(Gtk.Label(label="Example"))
+
+        import_model = Gio.ListStore(item_type=ImportItem)
+
+        import_cv = Gtk.ColumnView(single_click_activate=False, reorderable=True, css_classes=["flat"])
+
+        # ListStore -> FilterListModel -> TreeListModel -> SortListModel -> SingleSelection
+
+        import_cv.set_show_column_separators(self.settings.get_boolean("enable-columns-separators"))
+        import_cv.set_show_row_separators(self.settings.get_boolean("enable-rows-separators"))
+
+        tree_model = Gtk.TreeListModel.new(import_model, False, True, self.model_func)
+        tree_sorter = Gtk.TreeListRowSorter.new(import_cv.get_sorter())
+        sorter_model = Gtk.SortListModel(model=tree_model, sorter=tree_sorter)
+
+        selection_model = Gtk.SingleSelection.new(model=self.sorter_model)
+        selection_model.connect("selection-changed", self.on_selection_changed)
+
+        column_view_scrolled_window = Gtk.ScrolledWindow(vexpand=True, overlay_scrolling=True)
+        column_view_scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        column_view_scrolled_window.set_child(import_cv)
+        box.append(column_view_scrolled_window)
+
+        box3 = Gtk.Box(spacing=6, margin_start=6, margin_end=6, homogeneous=True)
+        cancel_button = Gtk.Button(label=_("Cancel"), hexpand=True, margin_top=6, margin_bottom=6)
+        cancel_button.connect("clicked", self.quit_window, window)
+        add_button = Gtk.Button(label=_("Add"), hexpand=True, margin_top=6, margin_bottom=6, css_classes=["suggested-action"])
+
+        box3.append(cancel_button)
+        box3.append(add_button)
+
+        box.append(box3)
+
+        reader = csv.reader(file_content.splitlines())
+        max_row_lenght = 0
+
+        for i, row in enumerate(reader):
+            row_lenght = len(row)
+            if row_lenght > max_row_lenght:
+                max_row_lenght = row_lenght
+            import_item = ImportItem()
+            for i, value in enumerate(row):
+                import_item.append_value(value)
+            #print(import_item)
+            import_model.append(import_item)
+
+        possible_categories_list = Gtk.StringList()
+        possible_categories_list.append("DO NOT INCLUDE")
+
+        for detail in self.details_names:
+            possible_categories_list.append(detail[0])
+
+        columns = []
+
+        for i in range(max_row_lenght):
+            list_box.append(self.column_row_selector(possible_categories_list))
             
+            factory = Gtk.SignalListItemFactory()
+            factory.connect("setup", self._on_factory_setup)
+            factory.connect("bind", self._on_import_factory_bind, i)
+            factory.connect("unbind", self._on_factory_unbind, i)
+            factory.connect("teardown", self._on_factory_teardown)
+
+            col = Gtk.ColumnViewColumn(title="Column " + str(i), factory=factory, resizable=True)
+            columns.append(col)
+            col.props.expand = True
+            import_cv.append_column(col)
+
+    def _on_import_factory_bind(self, factory, list_item, index):
+        label = list_item.get_child()
+        item = list_item.get_item().get_item()
+        label.set_text(item.get_value[index])
+
+    def column_row_selector(self, categories_list):
+        box2 = Gtk.Box(margin_end=4, margin_start=6, margin_top=4, margin_bottom=4, spacing=6)
+        categories_drop_down = Gtk.DropDown()
+        categories_drop_down.set_model(categories_list)
+        categories_drop_down.set_enable_search(True)
+        categories_drop_down.set_hexpand(True)
+        box2.append(categories_drop_down)
+        box2.append(Gtk.Entry(placeholder_text=_("Value"),hexpand=True))
+        delete_button = Gtk.Button(icon_name="user-trash-symbolic")
+        #delete_button.connect("clicked", self.delete_custom_item_row, list_box)
+        box2.append(delete_button)
+        return box2
+
+    def on_import_file_selected(self, dialog, response, window):
+        if response == Gtk.ResponseType.ACCEPT:
+            selected_file = dialog.get_file()
+            if selected_file:
+                file_path = selected_file.get_path()
+                file_content = self.read_csv(file_path)
+                self.import_page_assign_columns(file_content, window)
+        else:
+            dialog.destroy()
+
+    def open_file_to_import(self, btn, window):
+        dialog = Gtk.FileChooserNative(
+            title="Open File",
+            transient_for=None,
+            action=Gtk.FileChooserAction.OPEN,
+        )
+
+        dialog.set_accept_label("Open")
+        dialog.set_cancel_label("Cancel")
+
+        response = dialog.show()
+
+        dialog.connect("response", self.on_import_file_selected, window)
 
 
+    def read_csv(self, file_path):
+        print("reading csv")
+
+        try:
+            open(file_path, 'r').read()
+        except Exception as e:
+            self.send_toast("Error reading csv file:" + str(e))
+            return 0
+
+        with open(file_path, 'r') as file:
+            file_content = file.read()
+            directory, file_name = os.path.split(file_path)
+            reader = csv.reader(file_content.splitlines())
+
+            return file_content
+
+            for i, row in enumerate(reader):
+                for index, value in enumerate(row):
+                    print(index)
 

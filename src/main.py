@@ -65,7 +65,7 @@ class InventarioApplication(Adw.Application):
         self.win.save_inventory_file_as()
 
     def on_import_action(self, widget, _):
-        pass
+        self.win.open_import_window()
 
     def on_open_inventory_action(self, widget, _):
         self.win.open_file_chooser()
@@ -143,6 +143,19 @@ class InventarioApplication(Adw.Application):
         switch = Gtk.Switch(valign=Gtk.Align.CENTER)
         row.add_suffix(switch)
         self.win.settings.bind("enable-columns-separators", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
+        self.general_group.add(row)
+
+        currency_symbols = ["€", "$", "£", "¥", "C$", "A$", "Fr", "¥", "₹", "₽", "₩", "R$", "$ or Mex$", "R", "NZ$"]
+        row = Adw.ComboRow(title=("Currency"))
+        drop_down = Gtk.DropDown.new_from_strings(currency_symbols) #valign=Gtk.Align.CENTER
+
+        list_store = Gtk.StringList()
+        for symbol in currency_symbols:
+            list_store.append(symbol)
+
+        row.set_model(list_store)
+        #row.add_suffix(drop_down)
+        #self.win.settings.bind("currency", row, 'selected', Gio.SettingsBindFlags.DEFAULT)
         self.general_group.add(row)
 
         pref.present()
