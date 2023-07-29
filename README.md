@@ -10,11 +10,15 @@
   A Gtk4/Libadwaita application to keep track of your inventory.
   It's still under development, it's not ready for use.
   </p>
-  
+
+  <details><summary>Screenshots</summary>
   <div align="center">
-  <img src="data/resources/Screenshot 1.png" height="350"/>
-  <img src="data/resources/Screenshot 2.png" height="350"/>
+  <img src="data/resources/Screenshot 3.png"/>
+  <img src="data/resources/Screenshot 4.png"/>
+  <img src="data/resources/Screenshot 5.png"/>
+  <img src="data/resources/Screenshot 6.png"/>
   </div>
+  </details>
 
 ## Feature ideas:
 Not all features will be implemented, it's just a list of ideas
