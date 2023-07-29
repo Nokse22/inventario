@@ -55,7 +55,7 @@ Not all features will be implemented, it's just a list of ideas
   - [x] info page
   - [x] deleting
   - [x] saving
-  - [ ] editing
+  - [x] editing
   - [ ] parts binding
   - [ ] adding new parts
   - [ ] in production and progress tracking
