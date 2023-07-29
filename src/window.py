@@ -186,8 +186,13 @@ class Product(GObject.Object):
         self._product_stock_for_sale = None
         self._product_storage = None
         self._product_part_number = None
+        self._product_revision = None
 
         self._product_parts_list = Gio.ListStore(item_type=Part)
+
+    @GObject.Property(type=str)
+    def product_revision(self):
+        return self._product_revision
 
     @GObject.Property(type=str)
     def product_stock_on_order(self):
@@ -461,7 +466,7 @@ class InventarioWindow(Adw.ApplicationWindow):
     sidebar_options = ["Dashboard", "Items", "Products", "Low Stock", "Out Of Stock", "Production", "Invoice", ]
 
     dashboard_index = 0
-    parts_index = 1
+    items_index = 1
     products_index = 2
     invoices_index = 6
     low_stock_index = 3
@@ -496,7 +501,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         ["part_package", "item_package", "product_package", "Package"],
         ["part_part_number", "item_part_number", "product_part_number", "Part Number"],
         ["part_cost", "item_cost", "product_cost", "Cost"],
-        ["part_value", "item_value", "product_value", "Value"],
         ["part_manufacturer", "item_manufacturer", "product_manufacturer", "Manufaturer"],
         ["part_seller", "item_seller", "product_seller", "Seller"],
         ["part_storage", "item_storage", "product_storage", "Storage"],
@@ -557,6 +561,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                     ["Stock", "product_stock", "int"],
                     ["Package", "product_package", "str"],
                     ["Part Number","product_part_number", "str"],
+                    ["Revision","product_revision", "str"],
                     ["Price", "product_cost", "cost"],
                     ["Manufacturer", "product_manufacturer", "str"],
                     ["Seller", "product_seller", "str"],
@@ -1062,7 +1067,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
 
     def on_selection_changed(self, selection_model, pos, row):
-        if self.last_page == self.parts_index:
+        if self.last_page == self.items_index:
             self.selected_item = selection_model.get_selection().get_maximum()
             self.update_sidebar_item_info()
 
@@ -1440,19 +1445,23 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         if response == "delete":
             self.products_model.remove(product_index)
-            self.selected_product -= 1
-            if self.selected_product < 0:
-                self.selected_product = 0
-                if self.selected_product <= len(self.products_model):
+
+            if self.selected_product != 0:
+                self.selected_product -= 1
+            elif self.selected_product == 0:
+                if len(self.products_model) == 0:
                     self.selected_product = None
+                else:
+                    self.selected_product = 0
             print(self.selected_product)
             self.update_sidebar_product_info()
             dialog.destroy()
+            print(self.selected_product)
 
             self.send_toast("The item has been deleted")
 
     def on_delete_selected_button_clicked(self, btn):
-        if self.last_page == self.parts_index:
+        if self.last_page == self.items_index:
             self.delete_selected_item()
         elif self.last_page == self.low_stock_index:
             self.delete_selected_item()
@@ -1467,11 +1476,15 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         if response == "delete":
             self.model.remove(item_index)
-            self.selected_item -= 1
-            if self.selected_item < 0:
-                self.selected_item = 0
-                if self.selected_item <= len(self.model):
+
+            if self.selected_item != 0:
+                self.selected_item -= 1
+            elif self.selected_item == 0:
+                if len(self.model) == 0:
                     self.selected_item = None
+                else:
+                    self.selected_item = 0
+
             dialog.destroy()
 
             self.update_sidebar_item_info()
@@ -1757,13 +1770,10 @@ class InventarioWindow(Adw.ApplicationWindow):
                 icon_name="view-list-bullet-symbolic", hexpand=True, vexpand=True,
                 description="There are no items to display")
 
-        if len(self.model) == 0 or item_index == None:
+        if len(self.model) == 0:
             self.info_scrolled_window_product_custom.set_child(info_page_status_page)
             return
-        if item_index >= len(self.model):
-            item_index = 0
 
-        self.selected_item = item_index
         self.sidebar_item_info_list_box = Gtk.ListBox(show_separators=True, selection_mode=0,
                 margin_start=6, margin_end=6, vexpand=True, hexpand=True)#, width_request=300)
         box1 = Gtk.Box(orientation=1, hexpand=True)
@@ -1863,7 +1873,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         print("updated item info")
 
     def on_column_view_activated(self, cv, row_index):
-        if self.last_page == self.parts_index:
+        if self.last_page == self.items_index:
             self.selected_item = row_index
             self.show_edit_item_dialog()
             self.update_sidebar_item_info()
@@ -2302,7 +2312,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         window.destroy()
 
     def add_new_item_or_product_dialog(self, btn):
-        if self.last_page == self.parts_index:
+        if self.last_page == self.items_index:
             self.add_new_item_dialog()
         if self.last_page == self.products_index:
             self.add_new_product_dialog()
@@ -2676,7 +2686,9 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.search_button_toggle.set_visible(False)
         self.search_revealer.set_reveal_child(False)
         self.item_info_revealer.set_reveal_child(False)
+        self.action_bar_revealer.set_transition_duration(0)
         self.action_bar_revealer.set_reveal_child(False)
+        self.action_bar_revealer.set_transition_duration(250)
         self.products_box = Gtk.Box(margin_start=10, margin_top=10, margin_bottom=10, margin_end=10)
         #self.content_scrolled_window.set_child(self.products_box)
 
@@ -2697,7 +2709,9 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.search_button_toggle.set_visible(False)
         self.search_revealer.set_reveal_child(False)
         self.item_info_revealer.set_reveal_child(False)
+        self.action_bar_revealer.set_transition_duration(0)
         self.action_bar_revealer.set_reveal_child(False)
+        self.action_bar_revealer.set_transition_duration(250)
         self.invoices_box = Gtk.Box(margin_start=10, margin_top=10, margin_bottom=10, margin_end=10, orientation=1)
         self.content_scrolled_window.set_child(self.invoices_box)
 
@@ -2815,7 +2829,10 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.search_button_toggle.set_visible(False)
         self.search_revealer.set_reveal_child(False)
         self.item_info_revealer.set_reveal_child(False)
+        self.action_bar_revealer.set_transition_duration(0)
         self.action_bar_revealer.set_reveal_child(False)
+        self.action_bar_revealer.set_transition_duration(250)
+
         self.products_box = Gtk.Box(margin_start=10, margin_top=10, margin_bottom=10, margin_end=10)
         #self.content_scrolled_window.set_child(self.products_box)
 
@@ -2882,7 +2899,9 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.content_scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
         self.content_scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.item_info_revealer.set_reveal_child(False)
+        self.action_bar_revealer.set_transition_duration(0)
         self.action_bar_revealer.set_reveal_child(False)
+        self.action_bar_revealer.set_transition_duration(250)
         self.dashboard_box = Gtk.FlowBox(margin_start=10, margin_top=10, margin_bottom=10, hexpand=True,
                 margin_end=10, valign=Gtk.Align.START, selection_mode=Gtk.SelectionMode.NONE,
                 max_children_per_line=4)
@@ -2894,11 +2913,29 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         self.info_scrolled_window_product_custom.set_child(info_page_status_page)
 
-        self.dashboard_box.append(self.dashboard_simple_widget("Items", len(self.model)))
-        self.dashboard_box.append(self.dashboard_simple_widget("Low Stock", self.get_low_stock()))
-        self.dashboard_box.append(self.dashboard_simple_widget("Out of Stock", self.get_out_of_stock()))
+        items_widget = self.dashboard_simple_widget("Items", len(self.model))
+        items_widget.connect("clicked", self.on_go_items_button_clicked)
+        self.dashboard_box.append(items_widget)
+
+        low_stock_widget = self.dashboard_simple_widget("Low Stock", self.get_low_stock())
+        low_stock_widget.connect("clicked", self.on_go_to_low_stock_button_clicked)
+        self.dashboard_box.append(low_stock_widget)
+
+        out_of_stock_widget = self.dashboard_simple_widget("Out of Stock", self.get_out_of_stock())
+        out_of_stock_widget.connect("clicked", self.on_go_to_out_of_stock_button_clicked)
+        self.dashboard_box.append(out_of_stock_widget)
+
         self.dashboard_box.append(self.dashboard_simple_widget("Value", str(self.get_inventory_value()) + " €"))
         self.dashboard_box.append(self.dashboard_progress_widget("Items to 100", len(self.model), 100))
+
+    def on_go_to_low_stock_button_clicked(self, btn):
+        self.navigation_select_page(self.low_stock_index)
+
+    def on_go_to_out_of_stock_button_clicked(self, btn):
+        self.navigation_select_page(self.out_of_stock_index)
+
+    def on_go_items_button_clicked(self, btn):
+        self.navigation_select_page(self.items_index)
 
     def get_inventory_value(self):
         total = 0
@@ -2945,16 +2982,18 @@ class InventarioWindow(Adw.ApplicationWindow):
         return box
 
     def dashboard_simple_widget(self, info_name, info):
-        box = Gtk.Box(css_classes=["card"], margin_start=6, margin_end=6, vexpand=True,
-                margin_top=6, margin_bottom=6, hexpand=True, spacing = 6, height_request=100)
+        button = Gtk.Button(css_classes=["card"], margin_start=6, margin_end=6, vexpand=True,
+                margin_top=6, margin_bottom=6, hexpand=True, height_request=100)
+        box = Gtk.Box()
+        button.set_child(box)
         image = Gtk.Image(icon_name="package-x-generic-symbolic", pixel_size=40, margin_start=30)
 
         box.append(image)
-        box2 = Gtk.Box(orientation=1)
+        box2 = Gtk.Box(orientation=1, margin_end=6)
         box.append(box2)
         box2.append(Gtk.Label(css_classes=["title-2"], label=info_name, hexpand=True, margin_start=10, margin_top=10, margin_bottom=10))
         box2.append(Gtk.Label(label=info, hexpand=True, margin_end=10, vexpand=True))
-        return box
+        return button
         
     def dashboard_progress_widget(self, info_name, info, total):
         box = Gtk.Box(css_classes=["card"], margin_start=6, margin_end=6,
