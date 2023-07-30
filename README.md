@@ -11,7 +11,7 @@
   It's still under development, it's not ready for use.
   </p>
 
-  <details><summary>Screenshots</summary>
+  <details><summary><h2>Click here for screenshots 🖼️</h2></summary>
   <div align="center">
   <img src="data/resources/Screenshot 3.png"/>
   <img src="data/resources/Screenshot 4.png"/>
