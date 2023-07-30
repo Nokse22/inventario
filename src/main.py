@@ -23,10 +23,11 @@ import gi, os
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
-from gi.repository import Gtk, Gio, Adw
+from gi.repository import Gtk, Gio, Adw, Gdk
 from .window import InventarioWindow
 
-from gettext import gettext as _
+import threading
+import gettext
 import locale
 from os import path
 from os.path import abspath, dirname, join, realpath
@@ -38,6 +39,20 @@ class InventarioApplication(Adw.Application):
     def __init__(self):
         super().__init__(application_id='io.github.nokse22.inventario',
                          flags=Gio.ApplicationFlags.DEFAULT_FLAGS)
+
+        css = '''
+        .big-title{
+            color:rgb(255,255,255);
+            background-color: rgba(0,0,0,0);
+        }
+        '''
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_data(css, -1)
+        Gtk.StyleContext.add_provider_for_display(
+            Gdk.Display.get_default(),
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
 
         self.create_action('quit', lambda *_: self.quit(), ['<primary>q'])
         self.create_action('about', self.on_about_action)
@@ -82,13 +97,10 @@ class InventarioApplication(Adw.Application):
         self.win.present()
 
         self.win.open_file_on_startup()
-        if self.win.last_page == 1:
-            self.win.update_sidebar_item_info()
 
-    def on_show():
-        print('Doing stuff.')
-        sleep(3)
-        print('Done stuff.')
+        self.win.navigation_select_page(self.win.last_page)
+
+        #threading.Thread(target=self.win.open_file_on_startup).start()
 
     def on_about_action(self, widget, _):
         """Callback for the app.about action."""
@@ -107,42 +119,50 @@ class InventarioApplication(Adw.Application):
         """Callback for the app.preferences action."""
 
         pref = Adw.PreferencesWindow()
+        pref.set_modal(True)
+        pref.set_transient_for(self.props.active_window)
 
-        settingsPage = Adw.PreferencesPage(title="Generals")
+        settingsPage = Adw.PreferencesPage(title=gettext.gettext("Generals"))
         settingsPage.set_icon_name("applications-system-symbolic")
         pref.add(settingsPage)
 
-        self.general_group = Adw.PreferencesGroup(title=("General settings"))
+        self.general_group = Adw.PreferencesGroup(title=gettext.gettext("General settings"))
         settingsPage.add(self.general_group)
 
-        row = Adw.ActionRow(title=("Remember window size"))
+        row = Adw.ActionRow(title=gettext.gettext("Remember window size"))
         switch = Gtk.Switch(valign=Gtk.Align.CENTER)
         row.add_suffix(switch)
         self.win.settings.bind("window-save", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
         self.general_group.add(row)
 
-        row = Adw.ActionRow(title=("Open last inventory on startup"))
+        row = Adw.ActionRow(title=gettext.gettext("Open last inventory on startup"))
         switch = Gtk.Switch(valign=Gtk.Align.CENTER)
         row.add_suffix(switch)
         self.win.settings.bind("open-last-on-start", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
         self.general_group.add(row)
 
-        row = Adw.ActionRow(title=("Enable horizontal scrolling"))
+        row = Adw.ActionRow(title=gettext.gettext("Enable horizontal scrolling"))
         switch = Gtk.Switch(valign=Gtk.Align.CENTER)
         row.add_suffix(switch)
         self.win.settings.bind("enable-horizontal-scrolling", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
         self.general_group.add(row)
 
-        row = Adw.ActionRow(title=("Enable rows separators"), subtitle=("It will take effect at the next start"))
+        row = Adw.ActionRow(title=gettext.gettext("Enable rows separators"), subtitle=gettext.gettext("It will take effect at the next start"))
         switch = Gtk.Switch(valign=Gtk.Align.CENTER)
         row.add_suffix(switch)
         self.win.settings.bind("enable-rows-separators", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
         self.general_group.add(row)
 
-        row = Adw.ActionRow(title=("Enable columns separators"), subtitle=("It will take effect at the next start"))
+        row = Adw.ActionRow(title=gettext.gettext("Enable columns separators"), subtitle=gettext.gettext("It will take effect at the next start"))
         switch = Gtk.Switch(valign=Gtk.Align.CENTER)
         row.add_suffix(switch)
         self.win.settings.bind("enable-columns-separators", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
+        self.general_group.add(row)
+
+        row = Adw.ActionRow(title=gettext.gettext("Enable coloured categories"), subtitle=gettext.gettext("It will take effect after changing page"))
+        switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        row.add_suffix(switch)
+        self.win.settings.bind("enable-coloured-categories", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
         self.general_group.add(row)
 
         currency_symbols = ["€", "$", "£", "¥", "C$", "A$", "Fr", "¥", "₹", "₽", "₩", "R$", "$ or Mex$", "R", "NZ$"]

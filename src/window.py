@@ -957,8 +957,6 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         self.action_bar.pack_end(self.products_column_visibility_button)
 
-        self.navigation_select_page(self.last_page)
-
     def column_visibility_check_button(self, column, array):
         title = column.get_title()
         box = Gtk.Box(orientation=0)
@@ -1008,6 +1006,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             entry.remove_css_class("success")
 
     def filter_rows(self, btn):
+        print("filter rows")
         self.filter_parameters = []
         for detail in self.details_names:
             self.filter_parameters.append(["", detail[1]])
@@ -1118,8 +1117,8 @@ class InventarioWindow(Adw.ApplicationWindow):
             path = self.settings.get_string("last-inventory-path")
             self.read_inventory_file(path)
 
-
     def on_selection_changed(self, selection_model, pos, row):
+        print("selection changed")
         if self.last_page == self.items_index:
             self.selected_item = selection_model.get_selection().get_maximum()
             self.update_sidebar_item_info()
@@ -1787,6 +1786,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         print("show_edit_product_dialog")
 
     def update_sidebar_item_info(self):
+        print("update item")
         item_index = self.selected_item
 
         info_page_status_page = Adw.StatusPage(title="Info Page",
@@ -1795,6 +1795,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         if len(self.model) == 0:
             self.info_scrolled_window_product_custom.set_child(info_page_status_page)
+            print(1)
             return
 
         self.sidebar_item_info_list_box = Gtk.ListBox(show_separators=True, selection_mode=0,
@@ -1804,6 +1805,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         if self.selection_model.get_item(item_index) != None:
             item = self.selection_model.get_item(item_index).get_item()
         else:
+            print(2)
             return
 
         sidebar_scrolled_window_item_info = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
@@ -1896,6 +1898,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         print("updated item info")
 
     def on_column_view_activated(self, cv, row_index):
+        print("column view activated")
         if self.last_page == self.items_index:
             self.selected_item = row_index
             self.show_edit_item_dialog()
@@ -2287,6 +2290,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             return 1
 
     def show_items(self):
+        print("show items")
         self.split_view.set_collapsed(False)
         self.content_headerbar.set_show_title_buttons(False)
         self.search_button_toggle.set_visible(True)
@@ -2304,7 +2308,9 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.cv.get_model().select_item(self.selected_item, True)
         self.row_filter.changed(Gtk.FilterChange.DIFFERENT)
         self.selected_item = self.selection_model.get_selection().get_maximum()
+        print("items shown")
         self.update_sidebar_item_info()
+        print("update called")
 
     def _on_factory_setup(self, factory, list_item, detail_type = None):
         if detail_type == "progress":
@@ -2326,7 +2332,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             if detail != None:
                 if what == "item_cost":
                     detail = str(detail) + " €"
-                elif "category" in what:
+                elif "category" in what and self.settings.get_boolean("enable-coloured-categories"):
                     if detail in "ELECTRONICS":
                         label.add_css_class("accent")
                         label.add_css_class("title-3")
@@ -2784,7 +2790,9 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     def make_new_invoice(self, btn):
         make_invoice_box = Gtk.Box(homogeneous=True)
-        self.content_scrolled_window.set_child(make_invoice_box)
+        clamp = Adw.Clamp(maximum_size=800, tightening_threshold=600)
+        clamp.set_child(make_invoice_box)
+        self.content_scrolled_window.set_child(clamp)
 
         list_box = Gtk.ListBox(selection_mode = 0, vexpand=True, margin_end=6)
         scrolled_window = Gtk.ScrolledWindow(margin_start=6, margin_top=6, margin_bottom=6, hexpand=True)
@@ -2846,6 +2854,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         #make_invoice_box.append(items_scrolled_window)
 
     def navigation_select_page(self, index):
+        print("navigation select")
         selected_row = self.sidebar_navigation_listBox.get_row_at_index(index)
         self.sidebar_navigation_listBox.select_row(selected_row)
 
@@ -2856,18 +2865,23 @@ class InventarioWindow(Adw.ApplicationWindow):
         elif selected_row.get_child().get_label() == "Items":
             self.show_items()
             self.delete_filter_rows()
+
         elif selected_row.get_child().get_label() == "Products":
             self.show_products()
             #self.update_sidebar_product_info()
             self.delete_filter_rows()
+
         elif selected_row.get_child().get_label() == "Invoice":
             self.show_invoice()
+
         elif selected_row.get_child().get_label() == "Low Stock":
             self.show_low_stock()
             self.delete_filter_rows()
+
         elif selected_row.get_child().get_label() == "Out Of Stock":
             self.show_out_of_stock()
             self.delete_filter_rows()
+
         elif selected_row.get_child().get_label() == "Production":
             self.show_production()
             self.delete_filter_rows()
@@ -2931,8 +2945,8 @@ class InventarioWindow(Adw.ApplicationWindow):
         factory = Gtk.SignalListItemFactory()
         factory.connect("setup", self._on_factory_setup, detail_type)
         factory.connect("bind", self._on_production_factory_bind, detail_call)
-        factory.connect("unbind", self._on_factory_unbind, detail_call)
-        factory.connect("teardown", self._on_factory_teardown)
+        #factory.connect("unbind", self._on_factory_unbind, detail_call)
+        #factory.connect("teardown", self._on_factory_teardown)
 
         col = Gtk.ColumnViewColumn(title=column_name, factory=factory, resizable=True)
         sorter = Gtk.CustomSorter.new(self.sort_func, user_data=[detail_call, detail_type])
@@ -2970,6 +2984,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         if self.selected_item != None:
             self.cv.get_model().select_item(self.selected_item, True)
+
         self.row_filter.changed(Gtk.FilterChange.DIFFERENT)
         self.selected_item = self.selection_model.get_selection().get_maximum()
         self.update_sidebar_item_info()
@@ -2988,7 +3003,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         if self.settings.get_boolean("enable-horizontal-scrolling"):
             self.content_scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.action_bar_revealer.set_reveal_child(True)
-
 
         if self.selected_item != None:
             self.cv.get_model().select_item(self.selected_item, True)
