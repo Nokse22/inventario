@@ -42,8 +42,7 @@ class InventarioApplication(Adw.Application):
 
         css = '''
         .big-title{
-            color:rgb(255,255,255);
-            background-color: rgba(0,0,0,0);
+            font: 40px "Cantarell";
         }
         '''
         css_provider = Gtk.CssProvider()

@@ -87,6 +87,8 @@ class Part(GObject.Object):
     def __init__(self):
         super().__init__()
 
+        self._part_last_position = None
+        self._part_type = None
         self._part_id = None
         self._part_category = None
         self._part_name = None
@@ -106,6 +108,19 @@ class Part(GObject.Object):
         self._part_part_number = None
         self._used_quantity = None
         self._part_datasheet = None
+
+    def set_part_last_position(self, value):
+        self._part_last_position = value
+
+    def set_part_type(self, value):
+        self._part_type = value
+
+
+    def part_last_position(self):
+        return self._part_last_position
+
+    def part_type(self):
+        return self._part_type
 
     @GObject.Property(type=str)
     def part_datasheet(self):
@@ -183,12 +198,6 @@ class Part(GObject.Object):
     @GObject.Property(type=str)
     def part_part_number(self):
         return self._part_part_number
-
-    def set_parts_index(self, index, value):
-        self._part_parts_list[index] = value
-
-    def append_part(self, part_id, quantity):
-        self._part_parts_list.append([part_id, quantity])
 
     def get_detail(self, name):
         return getattr(self, name, None)
@@ -416,7 +425,9 @@ class Item(GObject.Object):
 
     @GObject.Property(type=str)
     def item_cost(self):
-        return self._item_cost
+        if self._item_cost != None:
+            return str(round(float(self._item_cost), 2))
+        return "0.00"
 
     @GObject.Property(type=str)
     def item_value(self):
@@ -442,7 +453,9 @@ class Item(GObject.Object):
 
     @GObject.Property(type=str)
     def item_selling_price(self):
-        return self._item_selling_price
+        if self._item_selling_price != None:
+            return str(round(float(self._item_selling_price), 2))
+        return "0.00"
 
     @GObject.Property(type=int)
     def item_stock_reserved(self):
@@ -538,6 +551,26 @@ class InventarioWindow(Adw.ApplicationWindow):
     #
     # do not change the order of the item details in the Item class,
     # to change the order of the visualized column you can just change it in the following array
+
+    part_detail_calls = [
+            ['ID','part_id',],
+            ['Category','part_category',],
+            ['Used','used_quantity',],
+            ['Name','part_name',],
+            ['Description','part_description',],
+            ['Package','part_package',],
+            ['Part Number','part_part_number',],
+            ['Cost','part_cost',],
+            ['Manufacturer','part_manufacturer',],
+            ['Seller','part_seller',],
+            ['Storage','part_storage',],
+            ['Reserved','part_stock_reserved',],
+            ['Allocated','part_stock_allocated',],
+            ['Planned','part_stock_planned',],
+            ['On Order','part_stock_on_order',],
+            ['For Sale','part_stock_for_sale',],
+            ['Data','part_datasheet'],
+            ]
 
     part_item_product_translation = [
         ["part_id", "item_id", "product_id", "ID"],
@@ -957,6 +990,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         self.action_bar.pack_end(self.products_column_visibility_button)
 
+
     def column_visibility_check_button(self, column, array):
         title = column.get_title()
         box = Gtk.Box(orientation=0)
@@ -1200,7 +1234,10 @@ class InventarioWindow(Adw.ApplicationWindow):
                     else:
                         new_part = Part()
                         for i, value in enumerate(row):
-                            new_part.set_detail(part_detail_call_list[i], value)
+                            try:
+                                new_part.set_detail(part_detail_call_list[i], value)
+                            except:
+                                pass
                         new_product.append_part(new_part)
             self.products_model.append(new_product)
         try:
@@ -1359,11 +1396,13 @@ class InventarioWindow(Adw.ApplicationWindow):
                     product_row = [product.get_detail(self.product_details_names[index][1]) for index in range(len(self.product_details_names))]
                     writer.writerow(product_row)
 
-                    parts_column_view_row = [part_detail_name[0] for part_detail_name in self.part_item_product_translation]
+                    parts_column_view_row = [part_detail[1] for part_detail in self.part_detail_calls]
                     writer.writerow(parts_column_view_row)
 
                     for part in product.product_parts_list:
-                        part_row = [part.get_detail(self.part_item_product_translation[index][0]) for index in range(len(self.part_item_product_translation))]
+                        part_row = [part.get_detail(part_detail[1]) for part_detail in self.part_detail_calls]
+                        part_row.append(part.part_last_position())
+                        part_row.append(part.part_type())
                         writer.writerow(part_row)
 
         directory, file_name = os.path.split(inventory_path)
@@ -1721,10 +1760,8 @@ class InventarioWindow(Adw.ApplicationWindow):
         selection = Gtk.NoSelection.new(model=sorter_model)
         parts_column_view.set_model(selection)
 
-        for detail in self.part_item_product_translation:
-            self.add_part_column_view_column(detail[3], detail[0], parts_column_view)
-
-        self.add_part_column_view_column("Used", "used_quantity", parts_column_view)
+        for detail in self.part_detail_calls:
+            self.add_part_column_view_column(detail[0], detail[1], parts_column_view)
 
         scrolled_window_product_parts = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
         scrolled_window_product_parts.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
@@ -2314,7 +2351,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     def _on_factory_setup(self, factory, list_item, detail_type = None):
         if detail_type == "progress":
-            bar = Gtk.LevelBar()
+            bar = Gtk.LevelBar(margin_top=3,margin_bottom=3,margin_end=3,margin_start=3,mode=Gtk.LevelBarMode.DISCRETE, max_value=5)
             list_item.set_child(bar)
         else:
             label = Gtk.Label(xalign=0, ellipsize=0, width_request=100)
@@ -2514,13 +2551,15 @@ class InventarioWindow(Adw.ApplicationWindow):
             value = None
             if detail_type == "str" or detail_type == "DATE" or detail_type == "date":
                 value = value_widget.get_text()
-            if detail_type == "STR":
+            elif detail_type == "STR":
                 value = value_widget.get_label()
-            if detail_type == "int" or detail_type == "cost":
+            elif detail_type == "int":
+                value = int(value_widget.get_value())
+            elif detail_type == "cost":
                 value = value_widget.get_value()
-            if detail_type == "cat":
+            elif detail_type == "cat":
                 value = value_widget.get_active_text()
-            if detail_type == "value":
+            elif detail_type == "value":
                 value = str(round(float(value_widget.get_first_child().get_value()), 2))
                 unit_index = value_widget.get_first_child().get_next_sibling().get_selected()
                 value += " " + str(self.units_of_measure[unit_index])
@@ -2528,16 +2567,18 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         parts = 0
         while parts_list_box.get_row_at_index(parts) != None:
-            quantity = parts_list_box.get_row_at_index(parts).get_child().get_first_child().get_next_sibling().get_value()
+            quantity = int(parts_list_box.get_row_at_index(parts).get_child().get_first_child().get_next_sibling().get_value())
             part_index = parts_list_box.get_row_at_index(parts).get_child().get_first_child().get_selected()
 
-            if part_index == "" or quantity == "":
+            if part_index == "" or quantity == 0:
                 continue
 
             new_part = Part()
 
             if part_index < len(self.model):
                 item = self.model[part_index]
+                new_part.set_part_type("item")
+                new_part.set_part_last_position(part_index)
                 for detail in self.part_item_product_translation:
                     value = item.get_detail(detail[1])
                     new_part.set_detail(detail[0], value)
@@ -2545,6 +2586,8 @@ class InventarioWindow(Adw.ApplicationWindow):
 
             else:
                 part = self.products_model[part_index - len(self.model)]
+                new_part.set_part_type("product")
+                new_part.set_part_last_position(part_index - len(self.model))
                 for detail in self.part_item_product_translation:
                     value = part.get_detail(detail[2])
                     new_part.set_detail(detail[0], value)
@@ -2688,13 +2731,15 @@ class InventarioWindow(Adw.ApplicationWindow):
             value = None
             if detail_type == "str" or detail_type == "DATE" or detail_type == "date":
                 value = value_widget.get_text()
-            if detail_type == "STR":
+            elif detail_type == "STR":
                 value = value_widget.get_label()
-            if detail_type == "int" or detail_type == "cost":
+            elif detail_type == "int":
+                value = int(value_widget.get_value())
+            elif detail_type == "cost":
                 value = value_widget.get_value()
-            if detail_type == "cat":
+            elif detail_type == "cat":
                 value = value_widget.get_active_text()
-            if detail_type == "value":
+            elif detail_type == "value":
                 value = str(round(float(value_widget.get_first_child().get_value()), 2))
                 unit_index = value_widget.get_first_child().get_next_sibling().get_selected()
                 value += " " + str(self.units_of_measure[unit_index])
