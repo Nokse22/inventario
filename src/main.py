@@ -32,6 +32,7 @@ import locale
 from os import path
 from os.path import abspath, dirname, join, realpath
 import os
+import time
 
 class InventarioApplication(Adw.Application):
     """The main application singleton class."""
@@ -41,8 +42,23 @@ class InventarioApplication(Adw.Application):
                          flags=Gio.ApplicationFlags.DEFAULT_FLAGS)
 
         css = '''
-        .big-title{
-            font: 40px "Cantarell";
+        .electronics{
+            color: #f6f5f4;
+            font-weight: bold;
+            background-color: #1c71d8;
+            border-radius: 4px;
+        }
+        .mechanical{
+            color: #f6f5f4;
+            font-weight: bold;
+            background-color: #26a269;
+            border-radius: 4px;
+        }
+        .consumable{
+            color: #f6f5f4;
+            font-weight: bold;
+            background-color: #b5835a;
+            border-radius: 4px;
         }
         '''
         css_provider = Gtk.CssProvider()
@@ -92,14 +108,18 @@ class InventarioApplication(Adw.Application):
         """
         self.win = self.props.active_window
         if not self.win:
+            start = time.time()
             self.win = InventarioWindow(application=self)
+            end = time.time()
+            print(end - start)
         self.win.present()
 
+        start = time.time()
         self.win.open_file_on_startup()
+        end = time.time()
+        print(end - start)
 
         self.win.navigation_select_page(self.win.last_page)
-
-        #threading.Thread(target=self.win.open_file_on_startup).start()
 
     def on_about_action(self, widget, _):
         """Callback for the app.about action."""
@@ -140,11 +160,11 @@ class InventarioApplication(Adw.Application):
         self.win.settings.bind("open-last-on-start", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
         self.general_group.add(row)
 
-        row = Adw.ActionRow(title=gettext.gettext("Enable horizontal scrolling"))
-        switch = Gtk.Switch(valign=Gtk.Align.CENTER)
-        row.add_suffix(switch)
-        self.win.settings.bind("enable-horizontal-scrolling", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
-        self.general_group.add(row)
+        # row = Adw.ActionRow(title=gettext.gettext("Enable horizontal scrolling"), subtitle=gettext.gettext("Can cause problems if disabled with many categories"))
+        # switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        # row.add_suffix(switch)
+        # self.win.settings.bind("enable-horizontal-scrolling", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
+        # self.general_group.add(row)
 
         row = Adw.ActionRow(title=gettext.gettext("Enable rows separators"), subtitle=gettext.gettext("It will take effect at the next start"))
         switch = Gtk.Switch(valign=Gtk.Align.CENTER)

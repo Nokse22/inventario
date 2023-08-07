@@ -115,7 +115,6 @@ class Part(GObject.Object):
     def set_part_type(self, value):
         self._part_type = value
 
-
     def part_last_position(self):
         return self._part_last_position
 
@@ -213,7 +212,7 @@ class Part(GObject.Object):
 
     def __repr__(self):
         text = "Part: "
-        return text + (self.part_id or "") + " " + (self.part_name or "no name") + " " + (self.part_description or "")
+        return text + (self.part_id or "") + " " + (self.part_name or "no name") + " " + (str(self._part_last_position) or "")
 
 class Product(GObject.Object):
     __gtype_name__ = "Product"
@@ -288,7 +287,9 @@ class Product(GObject.Object):
 
     @GObject.Property(type=str)
     def product_cost(self):
-        return self._product_cost
+        if self._product_cost != None:
+            return str(round(float(self._product_cost), 2))
+        return "0.00"
 
     @GObject.Property(type=str)
     def product_description(self):
@@ -304,7 +305,9 @@ class Product(GObject.Object):
 
     @GObject.Property(type=str)
     def product_selling_price(self):
-        return self._product_selling_price
+        if self._product_selling_price != None:
+            return str(round(float(self._product_selling_price), 2))
+        return "0.00"
 
     @GObject.Property(type=int)
     def product_stock_reserved(self):
@@ -333,7 +336,6 @@ class Product(GObject.Object):
     @GObject.Property(type=str)
     def product_part_number(self):
         return self._product_part_number
-
 
     def parts_list(self):
         return self._product_parts_list
@@ -694,9 +696,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         else:
             self.set_default_size(1000, 700)
 
-        #self.split_view = Adw.NavigationSplitView()
-        #self.set_content(self.split_view)
-
         # Create outer AdwNavigationSplitView
         self.split_view = Adw.NavigationSplitView()
         self.split_view.set_min_sidebar_width(470)
@@ -704,11 +703,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.split_view.set_sidebar_width_fraction(0.7)
 
         self.set_content(self.split_view)
-
-        # Create inner AdwNavigationSplitView
-        inner_view = Adw.NavigationSplitView()
-        inner_view.set_max_sidebar_width(260)
-        inner_view.set_sidebar_width_fraction(0.38)
 
         sidebar_page = Adw.NavigationPage()
         content_page = Adw.NavigationPage()
@@ -725,13 +719,11 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.right_pane = Adw.NavigationPage()
         self.split_view.set_content(self.right_pane)
 
-
         right_pane_box = Gtk.Box(orientation=1)
         self.right_pane.set_child(right_pane_box)
         right_pane_box.append(Adw.HeaderBar(css_classes=["flat"], hexpand=True))
         self.right_pane_content_box = Gtk.Box(vexpand=True,hexpand=True)
         right_pane_box.append(self.right_pane_content_box)
-        #self.right_pane_content_box.append(Gtk.Label(label="item info", css_classes=["title-1"], vexpand=True, hexpand=True))
 
         # Sidebar
         sidebar_page.set_title("")
@@ -767,7 +759,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         sidebar_box.append(sidebar_headerbar)
 
         # Content
-
         content_page.set_title("Inventario")
         content_page.set_tag("content")
 
@@ -797,7 +788,6 @@ class InventarioWindow(Adw.ApplicationWindow):
                 primary_icon_sensitive=False,
                 secondary_icon_name="edit-clear-symbolic",
                 width_request=150)
-        #self.search_entry.set_property(primary_icon_name, "info-symbolic")
 
         self.search_entry.connect("activate", self.filter_rows)
         self.search_entry.connect("changed", self.entry_text_inserted)
@@ -828,16 +818,10 @@ class InventarioWindow(Adw.ApplicationWindow):
         options_box.append(add_search_option_button)
         options_box.append(delete_search_button)
 
-        #options_box.append()
-
         first_search_box.append(self.search_entry)
         first_search_box.append(self.search_selector)
         self.search_bar_box.append(options_box)
         self.search_bar_box.append(first_search_box)
-
-        # for detail in self.details_names:
-        #     self.search_selector.append_text(detail[0])
-        # self.search_selector.set_active(2)
 
         self.search_revealer.set_child(self.search_bar_box)
 
@@ -864,7 +848,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         delete_item_button.connect("clicked", self.on_delete_selected_button_clicked)
 
         self.content_headerbar.pack_end(menu_button)
-        #self.content_headerbar.pack_start(self.search_revealer)
         self.content_headerbar.pack_start(self.search_button_toggle)
 
         self.content_scrolled_window = Gtk.ScrolledWindow(vexpand=True, overlay_scrolling=True)
@@ -901,7 +884,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.info_scrolled_window_product_custom = Gtk.ScrolledWindow(vexpand=True)
         self.info_scrolled_window_product_custom.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
 
-
         self.right_pane_content_box.append(self.info_scrolled_window_product_custom)
         self.model = Gio.ListStore(item_type=Item)
 
@@ -912,7 +894,6 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.filter_parameters.append(["", detail[1]])
 
         # Items column view
-
         self.cv = Gtk.ColumnView(single_click_activate=False, reorderable=True, css_classes=["flat"])
 
         # ListStore -> FilterListModel -> TreeListModel -> SortListModel -> SingleSelection
@@ -989,6 +970,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         products_column_visibility_popover.set_child(products_column_visibility_popover_box)
 
         self.action_bar.pack_end(self.products_column_visibility_button)
+
 
 
     def column_visibility_check_button(self, column, array):
@@ -1195,7 +1177,10 @@ class InventarioWindow(Adw.ApplicationWindow):
                 open(this_product_path, 'r').read()
             except Exception as e:
                 self.send_toast("Error reading inventory file:" + str(e))
-                return 0
+                self.settings.set_string("last-inventory-path", "")
+                self.win.model.remove_all()
+                self.win.products_model.remove_all()
+                return
 
             with open(this_product_path, 'r') as file:
                 file_content = file.read()
@@ -1235,9 +1220,18 @@ class InventarioWindow(Adw.ApplicationWindow):
                         new_part = Part()
                         for i, value in enumerate(row):
                             try:
-                                new_part.set_detail(part_detail_call_list[i], value)
+                                part_detail_call_list[i]
                             except:
-                                pass
+                                break
+                            if part_detail_call_list[i] == "part_last_position":
+                                new_part.set_part_last_position(value)
+                            elif part_detail_call_list[i] == "part_type":
+                                new_part.set_part_type(value)
+                            else:
+                                try:
+                                    new_part.set_detail(part_detail_call_list[i], value)
+                                except:
+                                    pass
                         new_product.append_part(new_part)
             self.products_model.append(new_product)
         try:
@@ -1245,7 +1239,10 @@ class InventarioWindow(Adw.ApplicationWindow):
         except Exception as e:
             self.send_toast("Error reading preferences file:" + str(e))
             print(str(e))
-            return 0
+            self.settings.set_string("last-inventory-path", "")
+            self.win.model.remove_all()
+            self.win.products_model.remove_all()
+            return
 
         with open(preferences_path, 'r') as file:
             file_content = file.read()
@@ -1283,7 +1280,10 @@ class InventarioWindow(Adw.ApplicationWindow):
             open(items_list_path, 'r').read()
         except Exception as e:
             self.send_toast("Error reading inventory file:" + str(e))
-            return 0
+            self.settings.set_string("last-inventory-path", "")
+            self.win.model.remove_all()
+            self.win.products_model.remove_all()
+            return
 
         with open(items_list_path, 'r') as file:
             file_content = file.read()
@@ -1313,9 +1313,6 @@ class InventarioWindow(Adw.ApplicationWindow):
                                     new_value = int(round(float(value)))
                                 elif type_info == "cost":
                                     new_value = float(value)
-                                # elif type_info == "value":
-                                #     new_value = float(value)
-                                #if type_info == "str" or type_info == "STR" or type_info == "date" or type_info == "DATE":
                                 else:
                                     new_value = str(value)
                                 new_item.set_detail(detail_call, new_value)
@@ -1397,6 +1394,8 @@ class InventarioWindow(Adw.ApplicationWindow):
                     writer.writerow(product_row)
 
                     parts_column_view_row = [part_detail[1] for part_detail in self.part_detail_calls]
+                    parts_column_view_row.append("part_last_position")
+                    parts_column_view_row.append("part_type")
                     writer.writerow(parts_column_view_row)
 
                     for part in product.product_parts_list:
@@ -1951,7 +1950,7 @@ class InventarioWindow(Adw.ApplicationWindow):
     def show_edit_product_dialog(self, btn=None):
         print("show_edit_product_dialog")
         product_index = self.selected_product
-        if product_index < len(self.model):
+        if product_index < len(self.products_model):
             product = self.products_selection_model.get_item(self.selected_product).get_item()
         else:
             return
@@ -2354,7 +2353,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             bar = Gtk.LevelBar(margin_top=3,margin_bottom=3,margin_end=3,margin_start=3,mode=Gtk.LevelBarMode.DISCRETE, max_value=5)
             list_item.set_child(bar)
         else:
-            label = Gtk.Label(xalign=0, ellipsize=0, width_request=100)
+            label = Gtk.Label(xalign=0, ellipsize=0, width_request=130, halign=Gtk.Align.START)
             list_item.set_child(label)
 
         # cell = Gtk.Inscription()
@@ -2371,14 +2370,17 @@ class InventarioWindow(Adw.ApplicationWindow):
                     detail = str(detail) + " €"
                 elif "category" in what and self.settings.get_boolean("enable-coloured-categories"):
                     if detail in "ELECTRONICS":
-                        label.add_css_class("accent")
-                        label.add_css_class("title-3")
+                        # label.add_css_class("accent")
+                        # label.add_css_class("title-3")
+                        label.add_css_class("electronics")
                     elif detail in "MECHANICAL":
-                        label.add_css_class("success")
-                        label.add_css_class("title-3")
+                        # label.add_css_class("success")
+                        # label.add_css_class("title-3")
+                        label.add_css_class("mechanical")
                     elif detail in "CONSUMABLE":
-                        label.add_css_class("warning")
-                        label.add_css_class("title-3")
+                        # label.add_css_class("warning")
+                        # label.add_css_class("title-3")
+                        label.add_css_class("consumable")
                 label.set_label(str(detail))
         else:
             label.set_label("")
@@ -2487,6 +2489,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 category_drop_down = Gtk.ComboBoxText(margin_top=4, margin_bottom=4,margin_end=4)
                 for category in self.items_categories:
                     category_drop_down.append_text(category)
+                category_drop_down.set_active(0)
                 box2.append(category_drop_down)
 
         box6.append(Gtk.Separator())
@@ -2570,9 +2573,6 @@ class InventarioWindow(Adw.ApplicationWindow):
             quantity = int(parts_list_box.get_row_at_index(parts).get_child().get_first_child().get_next_sibling().get_value())
             part_index = parts_list_box.get_row_at_index(parts).get_child().get_first_child().get_selected()
 
-            if part_index == "" or quantity == 0:
-                continue
-
             new_part = Part()
 
             if part_index < len(self.model):
@@ -2593,10 +2593,8 @@ class InventarioWindow(Adw.ApplicationWindow):
                     new_part.set_detail(detail[0], value)
                 new_part.set_detail("used_quantity", quantity)
             new_product.append_part(new_part)
+            print(new_part)
             parts += 1
-
-        # value = list_box.get_row_at_index(index).get_child().get_first_child().get_next_sibling().get_text()
-        # name = list_box.get_row_at_index(index).get_child().get_first_child().get_text()
 
         self.products_model.append(new_product)
         self.selected_product = len(self.products_model) - 1
@@ -3068,7 +3066,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.action_bar_revealer.set_transition_duration(250)
         self.dashboard_box = Gtk.FlowBox(margin_start=10, margin_top=10, margin_bottom=10, hexpand=True,
                 margin_end=10, valign=Gtk.Align.START, selection_mode=Gtk.SelectionMode.NONE,
-                max_children_per_line=4)
+                max_children_per_line=4, homogeneous=True)
         self.content_scrolled_window.set_child(self.dashboard_box)
 
         info_page_status_page = Adw.StatusPage(title="Work in progress",
@@ -3089,8 +3087,26 @@ class InventarioWindow(Adw.ApplicationWindow):
         out_of_stock_widget.connect("clicked", self.on_go_to_out_of_stock_button_clicked)
         self.dashboard_box.append(out_of_stock_widget)
 
-        self.dashboard_box.append(self.dashboard_simple_widget("Value", str(self.get_inventory_value()) + " " + self.settings.get_string("currency")))
-        self.dashboard_box.append(self.dashboard_progress_widget("Items to 100", len(self.model), 100))
+        self.dashboard_box.append(self.dashboard_simple_widget("Items Value", str(self.get_items_inventory_value()) + " " + self.settings.get_string("currency")))
+        # self.dashboard_box.append(self.dashboard_progress_widget("Items to 100", len(self.model), 100))
+
+        items_widget = self.dashboard_simple_widget("Products", len(self.products_model))
+        items_widget.connect("clicked", self.on_go_products_button_clicked)
+        self.dashboard_box.append(items_widget)
+
+        low_stock_widget = self.dashboard_simple_widget("In production", str(self.get_in_production()))
+        low_stock_widget.connect("clicked", self.on_go_production_button_clicked)
+        self.dashboard_box.append(low_stock_widget)
+
+        out_of_stock_widget = self.dashboard_simple_widget("On the last step", 0)
+        # out_of_stock_widget.connect("clicked", self.on_go_to_out_of_stock_button_clicked)
+        self.dashboard_box.append(out_of_stock_widget)
+
+    def get_in_production(self):
+        return 0
+
+    def on_go_production_button_clicked(self, btn):
+        self.navigation_select_page(self.production_index)
 
     def on_go_to_low_stock_button_clicked(self, btn):
         self.navigation_select_page(self.low_stock_index)
@@ -3101,13 +3117,16 @@ class InventarioWindow(Adw.ApplicationWindow):
     def on_go_items_button_clicked(self, btn):
         self.navigation_select_page(self.items_index)
 
-    def get_inventory_value(self):
+    def on_go_products_button_clicked(self, btn):
+        self.navigation_select_page(self.products_index)
+
+    def get_items_inventory_value(self):
         total = 0
         for i in range(len(self.model)):
             cost = self.model[i].item_cost
             stock = self.model[i].item_quantity
             if cost != None and stock != None:
-                total += cost * stock
+                total += float(cost) * int(stock)
         return total
 
     def get_out_of_stock(self):
@@ -3303,10 +3322,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         box.append(Gtk.Label(label="Example"))
 
         import_model = Gio.ListStore(item_type=ImportItem)
-
         import_cv = Gtk.ColumnView(single_click_activate=False, reorderable=True, css_classes=["flat"])
-
-        # ListStore -> FilterListModel -> TreeListModel -> SortListModel -> SingleSelection
 
         import_cv.set_show_column_separators(self.settings.get_boolean("enable-columns-separators"))
         import_cv.set_show_row_separators(self.settings.get_boolean("enable-rows-separators"))
@@ -3410,7 +3426,6 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         dialog.connect("response", self.on_import_file_selected, window)
 
-
     def read_csv(self, file_path):
         print("reading csv")
 
@@ -3430,4 +3445,5 @@ class InventarioWindow(Adw.ApplicationWindow):
             for i, row in enumerate(reader):
                 for index, value in enumerate(row):
                     print(index)
+
 
