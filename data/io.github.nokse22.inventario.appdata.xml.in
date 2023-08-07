@@ -12,6 +12,8 @@
 	<content_rating type="oars-1.0">
   </content_rating>
 
+  <developer_name>Nokse</developer_name>
+  
   <recommends>
     <control>keyboard</control>
     <control>pointing</control>
