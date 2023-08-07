@@ -2943,9 +2943,9 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.products_box = Gtk.Box(margin_start=10, margin_top=10, margin_bottom=10, margin_end=10)
         #self.content_scrolled_window.set_child(self.products_box)
 
-        info_page_status_page = Adw.StatusPage(title="Work in progress",
-                icon_name="info-symbolic", hexpand=True, vexpand=True,
-                description="Production info page")
+        info_page_status_page = Adw.StatusPage(title="Info Page",
+                icon_name="view-list-bullet-symbolic", hexpand=True, vexpand=True,
+                description="There are no products to display")
 
         wip_status_page = Adw.StatusPage(title="Work in progress",
                 icon_name="build-alt-symbolic", hexpand=True, vexpand=True,
