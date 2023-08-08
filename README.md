@@ -62,6 +62,7 @@ Not all features will be implemented, it's just a list of ideas
 - [x] custom info for every item with saving/loading from file
 - [x] triple pane layout
 - [x] link to buy from website
+- [ ] autosave every x time
 - [ ] export to CSV or other formats
 - [ ] import from CSV or JSON
 - [ ] dashboard with customizable widgets
