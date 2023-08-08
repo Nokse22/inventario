@@ -95,7 +95,7 @@ class InventarioApplication(Adw.Application):
         self.win.save_inventory_file_as()
 
     def on_import_action(self, widget, _):
-        self.win.open_import_window()
+        self.win.open_file_to_import()
 
     def on_open_inventory_action(self, widget, _):
         self.win.open_file_chooser()

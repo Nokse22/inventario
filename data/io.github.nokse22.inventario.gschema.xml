@@ -26,7 +26,7 @@
       <default>true</default>
     </key>
 	  <key name="enable-columns-separators" type="b">
-      <default>false</default>
+      <default>true</default>
     </key>
 	  <key name="currency" type="s">
       <default>'€'</default>

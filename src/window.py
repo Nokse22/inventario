@@ -70,13 +70,18 @@ class ImportItem(GObject.Object):
         self._columns = []
 
     def get_value(self, index):
-        return self._columns[index]
+        try:
+            self._columns[index]
+        except:
+            return "n/a"
+        else:
+            return self._columns[index]
 
     def append_value(self, value):
         self._columns.append(value)
 
     def __repr__(self):
-        text = ""
+        text = "Import"
         for detail in self._columns:
             text += " " + str(detail)
         return text
@@ -2348,7 +2353,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.update_sidebar_item_info()
         print("update called")
 
-    def _on_factory_setup(self, factory, list_item, detail_type = None):
+    def _on_factory_setup(self, factory, list_item, detail_type=None):
         if detail_type == "progress":
             bar = Gtk.LevelBar(margin_top=3,margin_bottom=3,margin_end=3,margin_start=3,mode=Gtk.LevelBarMode.DISCRETE, max_value=5)
             list_item.set_child(bar)
@@ -3289,37 +3294,46 @@ class InventarioWindow(Adw.ApplicationWindow):
         if combo.get_active_text() == self.dashboard_widgets[0]:
             grid.attach(self.simple_widget, 0, 0, x.get_value(), y.get_value())
 
-    def open_import_window(self):
-        import_window = Adw.Window(resizable=False)
+    # def open_import_window(self):
+    #     import_window = Adw.Window(resizable=False)
+    #     import_window.set_default_size(800, 700)
+    #     import_window.set_modal(True)
+    #     import_window.set_title(_("Import"))
+    #     import_window.set_transient_for(self)
+    #     box = Gtk.Box(orientation=1, vexpand=True)
+    #     box.append(Adw.HeaderBar(css_classes=["flat"]))
+    #     import_window.set_content(box)
+    #     scrolled_window = Gtk.ScrolledWindow(vexpand=True)
+    #     box.append(scrolled_window)
+
+    #     open_file_button = Gtk.Button(css_classes=["pill","suggested-action"],
+    #             label="Open File", halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, vexpand=True)
+    #     open_file_button.connect("clicked", self.open_file_to_import, import_window)
+    #     scrolled_window.set_child(open_file_button)
+
+    #     import_window.present()
+
+    def import_page_assign_columns(self, file_path):
+        import_window = Adw.Window(resizable=True)
         import_window.set_default_size(800, 700)
         import_window.set_modal(True)
         import_window.set_title(_("Import"))
         import_window.set_transient_for(self)
+
         box = Gtk.Box(orientation=1, vexpand=True)
         box.append(Adw.HeaderBar(css_classes=["flat"]))
         import_window.set_content(box)
-        scrolled_window = Gtk.ScrolledWindow(vexpand=True)
-        box.append(scrolled_window)
+        box2 = Gtk.Box(orientation=1, vexpand=True, homogeneous=True, spacing=10)
+        box.append(box2)
 
-        open_file_button = Gtk.Button(css_classes=["pill","suggested-action"],
-                label="Open File", halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, vexpand=True)
-        open_file_button.connect("clicked", self.open_file_to_import, import_window)
-        scrolled_window.set_child(open_file_button)
-
-        import_window.present()
-
-    def import_page_assign_columns(self, file_content, window):
-        box = Gtk.Box(orientation=1, vexpand=True)
-        box.append(Adw.HeaderBar(css_classes=["flat"]))
-        window.set_content(box)
         scrolled_window = Gtk.ScrolledWindow(vexpand=True)
 
-        box.append(scrolled_window)
+        box2.append(scrolled_window)
 
-        list_box = Gtk.ListBox(selection_mode = 0, margin_start=6, margin_end=6)
+        list_box = Gtk.ListBox(selection_mode = 0)
         scrolled_window.set_child(list_box)
 
-        box.append(Gtk.Label(label="Example"))
+        #box.append(Gtk.Label(label="Example"))
 
         import_model = Gio.ListStore(item_type=ImportItem)
         import_cv = Gtk.ColumnView(single_click_activate=False, reorderable=True, css_classes=["flat"])
@@ -3329,19 +3343,19 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         tree_model = Gtk.TreeListModel.new(import_model, False, True, self.model_func)
         tree_sorter = Gtk.TreeListRowSorter.new(import_cv.get_sorter())
-        sorter_model = Gtk.SortListModel(model=tree_model, sorter=tree_sorter)
 
-        selection_model = Gtk.SingleSelection.new(model=self.sorter_model)
+        selection_model = Gtk.SingleSelection.new(model=tree_model)
         selection_model.connect("selection-changed", self.on_selection_changed)
+        import_cv.set_model(selection_model)
 
         column_view_scrolled_window = Gtk.ScrolledWindow(vexpand=True, overlay_scrolling=True)
         column_view_scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         column_view_scrolled_window.set_child(import_cv)
-        box.append(column_view_scrolled_window)
+        box2.append(column_view_scrolled_window)
 
         box3 = Gtk.Box(spacing=6, margin_start=6, margin_end=6, homogeneous=True)
         cancel_button = Gtk.Button(label=_("Cancel"), hexpand=True, margin_top=6, margin_bottom=6)
-        cancel_button.connect("clicked", self.quit_window, window)
+        cancel_button.connect("clicked", self.quit_window, import_window)
         add_button = Gtk.Button(label=_("Add"), hexpand=True, margin_top=6, margin_bottom=6, css_classes=["suggested-action"])
 
         box3.append(cancel_button)
@@ -3349,18 +3363,15 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         box.append(box3)
 
+        file_content = self.read_csv(file_path)
+        #print(file_content)
         reader = csv.reader(file_content.splitlines())
-        max_row_lenght = 0
 
+        max_row_lenght = 0
         for i, row in enumerate(reader):
             row_lenght = len(row)
             if row_lenght > max_row_lenght:
                 max_row_lenght = row_lenght
-            import_item = ImportItem()
-            for i, value in enumerate(row):
-                import_item.append_value(value)
-            #print(import_item)
-            import_model.append(import_item)
 
         possible_categories_list = Gtk.StringList()
         possible_categories_list.append("DO NOT INCLUDE")
@@ -3373,21 +3384,31 @@ class InventarioWindow(Adw.ApplicationWindow):
         for i in range(max_row_lenght):
             list_box.append(self.column_row_selector(possible_categories_list))
             
-            factory = Gtk.SignalListItemFactory()
-            factory.connect("setup", self._on_factory_setup)
-            factory.connect("bind", self._on_import_factory_bind, i)
-            factory.connect("unbind", self._on_factory_unbind, i)
-            factory.connect("teardown", self._on_factory_teardown)
+            factory3 = Gtk.SignalListItemFactory()
+            factory3.connect("setup", self._on_factory_setup)
+            factory3.connect("bind", self._on_import_factory_bind, i)
+            factory3.connect("unbind", self._on_factory_unbind, i)
+            factory3.connect("teardown", self._on_factory_teardown)
 
-            col = Gtk.ColumnViewColumn(title="Column " + str(i), factory=factory, resizable=True)
+            col = Gtk.ColumnViewColumn(title="Column " + str(i), factory=factory3, resizable=True)
             columns.append(col)
             col.props.expand = True
             import_cv.append_column(col)
 
+        reader = csv.reader(file_content.splitlines())
+        for i, row in enumerate(reader):
+            import_item = ImportItem()
+            for i, value in enumerate(row):
+                import_item.append_value(value)
+            import_model.append(import_item)
+        import_window.present()
+
     def _on_import_factory_bind(self, factory, list_item, index):
         label = list_item.get_child()
         item = list_item.get_item().get_item()
-        label.set_text(item.get_value[index])
+        # print(item)
+        content = item.get_value(index)
+        label.set_text(content)
 
     def column_row_selector(self, categories_list):
         box2 = Gtk.Box(margin_end=4, margin_start=6, margin_top=4, margin_bottom=4, spacing=6)
@@ -3402,17 +3423,16 @@ class InventarioWindow(Adw.ApplicationWindow):
         box2.append(delete_button)
         return box2
 
-    def on_import_file_selected(self, dialog, response, window):
+    def on_import_file_selected(self, dialog, response):
         if response == Gtk.ResponseType.ACCEPT:
             selected_file = dialog.get_file()
             if selected_file:
                 file_path = selected_file.get_path()
-                file_content = self.read_csv(file_path)
-                self.import_page_assign_columns(file_content, window)
+                self.import_page_assign_columns(file_path)
         else:
             dialog.destroy()
 
-    def open_file_to_import(self, btn, window):
+    def open_file_to_import(self):
         dialog = Gtk.FileChooserNative(
             title="Open File",
             transient_for=None,
@@ -3424,7 +3444,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         response = dialog.show()
 
-        dialog.connect("response", self.on_import_file_selected, window)
+        dialog.connect("response", self.on_import_file_selected)
 
     def read_csv(self, file_path):
         print("reading csv")
@@ -3437,13 +3457,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         with open(file_path, 'r') as file:
             file_content = file.read()
-            directory, file_name = os.path.split(file_path)
-            reader = csv.reader(file_content.splitlines())
-
             return file_content
 
-            for i, row in enumerate(reader):
-                for index, value in enumerate(row):
-                    print(index)
 
 
