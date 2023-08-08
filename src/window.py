@@ -3459,5 +3459,12 @@ class InventarioWindow(Adw.ApplicationWindow):
             file_content = file.read()
             return file_content
 
+    def autosave(self):
+        if not self.settings.get_boolean("automatic-save"):
+            return 0
 
+        print("save")
+        path = self.settings.get_string("last-inventory-path")
+        self.save_inventory_file(path)
 
+        return 1

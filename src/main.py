@@ -23,7 +23,7 @@ import gi, os
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
-from gi.repository import Gtk, Gio, Adw, Gdk
+from gi.repository import Gtk, Gio, Adw, Gdk, GLib
 from .window import InventarioWindow
 
 import threading
@@ -121,6 +121,8 @@ class InventarioApplication(Adw.Application):
 
         self.win.navigation_select_page(self.win.last_page)
 
+        GLib.timeout_add(self.win.settings.get_int("autosave-delay") * 1000, self.win.autosave)
+
     def on_about_action(self, widget, _):
         """Callback for the app.about action."""
         about = Adw.AboutWindow(transient_for=self.props.active_window,
@@ -160,12 +162,6 @@ class InventarioApplication(Adw.Application):
         self.win.settings.bind("open-last-on-start", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
         self.general_group.add(row)
 
-        # row = Adw.ActionRow(title=gettext.gettext("Enable horizontal scrolling"), subtitle=gettext.gettext("Can cause problems if disabled with many categories"))
-        # switch = Gtk.Switch(valign=Gtk.Align.CENTER)
-        # row.add_suffix(switch)
-        # self.win.settings.bind("enable-horizontal-scrolling", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
-        # self.general_group.add(row)
-
         row = Adw.ActionRow(title=gettext.gettext("Enable rows separators"), subtitle=gettext.gettext("It will take effect at the next start"))
         switch = Gtk.Switch(valign=Gtk.Align.CENTER)
         row.add_suffix(switch)
@@ -187,15 +183,28 @@ class InventarioApplication(Adw.Application):
         currency_symbols = ["€", "$", "£", "¥", "C$", "A$", "Fr", "¥", "₹", "₽", "₩", "R$", "$ or Mex$", "R", "NZ$"]
         row = Adw.ComboRow(title=("Currency"))
         drop_down = Gtk.DropDown.new_from_strings(currency_symbols) #valign=Gtk.Align.CENTER
-
         list_store = Gtk.StringList()
         for symbol in currency_symbols:
             list_store.append(symbol)
-
         row.set_model(list_store)
         #row.add_suffix(drop_down)
         #self.win.settings.bind("currency", row, 'selected', Gio.SettingsBindFlags.DEFAULT)
         self.general_group.add(row)
+
+        group = Adw.PreferencesGroup(title=gettext.gettext("Save settings"))
+        settingsPage.add(group)
+
+        row = Adw.ActionRow(title=gettext.gettext("Enable autosave"))
+        switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        row.add_suffix(switch)
+        self.win.settings.bind("automatic-save", switch, 'active', Gio.SettingsBindFlags.DEFAULT)
+        group.add(row)
+
+        row = Adw.SpinRow(title=gettext.gettext("Autosave every (seconds)"), subtitle=gettext.gettext("It will take effect after restarting the app"))
+        row.set_range(1, 10000)
+        row.get_adjustment().set_step_increment(1)
+        self.win.settings.bind("autosave-delay", row, 'value', Gio.SettingsBindFlags.DEFAULT)
+        group.add(row)
 
         pref.present()
 

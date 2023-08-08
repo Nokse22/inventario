@@ -34,5 +34,11 @@
 	  <key name="enable-coloured-categories" type="b">
       <default>true</default>
     </key>
+	  <key name="automatic-save" type="b">
+      <default>true</default>
+    </key>
+	  <key name="autosave-delay" type="i">
+      <default>60</default>
+    </key>
 	</schema>
 </schemalist>
