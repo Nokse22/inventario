@@ -30,13 +30,13 @@
             "buildsystem" : "meson",
             "sources" : [
                 {
-                    "type" : "git",
-                    "url" : "file:///home/lorenzo/Projects"
+                    "type" : "dir",
+                    "url" : "."
                 }
             ]
         }
     ],
     "build-options" : {
-        "env" : {        }
+        "env" : {	}
     }
 }

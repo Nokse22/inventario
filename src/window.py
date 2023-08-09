@@ -68,6 +68,14 @@ class ImportItem(GObject.Object):
         super().__init__()
 
         self._columns = []
+        self._include = True
+
+    @GObject.Property(type=bool, default=True)
+    def include(self):
+        return self._include
+
+    def set_include(self, val):
+        self._include = val
 
     def get_value(self, index):
         try:
@@ -2357,6 +2365,10 @@ class InventarioWindow(Adw.ApplicationWindow):
         if detail_type == "progress":
             bar = Gtk.LevelBar(margin_top=3,margin_bottom=3,margin_end=3,margin_start=3,mode=Gtk.LevelBarMode.DISCRETE, max_value=5)
             list_item.set_child(bar)
+        elif detail_type == "check":
+            check = Gtk.CheckButton(active=True)
+            check.connect("toggled", self.on_checkbutton_toggled, list_item)
+            list_item.set_child(check)
         else:
             label = Gtk.Label(xalign=0, ellipsize=0, width_request=130, halign=Gtk.Align.START)
             list_item.set_child(label)
@@ -3364,7 +3376,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         box.append(box3)
 
         file_content = self.read_csv(file_path)
-        #print(file_content)
         reader = csv.reader(file_content.splitlines())
 
         max_row_lenght = 0
@@ -3381,14 +3392,20 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         columns = []
 
+        factory3 = Gtk.SignalListItemFactory()
+        factory3.connect("setup", self._on_factory_setup, "check")
+        factory3.connect("bind", self._on_import_factory_bind, i, "check")
+
+        col = Gtk.ColumnViewColumn(title="In ?", factory=factory3, resizable=True)
+        columns.append(col)
+        import_cv.append_column(col)
+
         for i in range(max_row_lenght):
             list_box.append(self.column_row_selector(possible_categories_list))
             
             factory3 = Gtk.SignalListItemFactory()
             factory3.connect("setup", self._on_factory_setup)
             factory3.connect("bind", self._on_import_factory_bind, i)
-            factory3.connect("unbind", self._on_factory_unbind, i)
-            factory3.connect("teardown", self._on_factory_teardown)
 
             col = Gtk.ColumnViewColumn(title="Column " + str(i), factory=factory3, resizable=True)
             columns.append(col)
@@ -3401,14 +3418,32 @@ class InventarioWindow(Adw.ApplicationWindow):
             for i, value in enumerate(row):
                 import_item.append_value(value)
             import_model.append(import_item)
+
+        add_button.connect("clicked", self.import_items, columns, import_model)
         import_window.present()
 
-    def _on_import_factory_bind(self, factory, list_item, index):
-        label = list_item.get_child()
+
+    def import_items(self, btn, columns, model):
+        for i, item in enumerate(model):
+            if item.include:
+                print(item)
+
+    def _on_import_factory_bind(self, factory, list_item, index, detail_type=None):
+        widget = list_item.get_child()
         item = list_item.get_item().get_item()
-        # print(item)
+        if detail_type == "check":
+            # item.bind_property("include", widget, "active", GObject.BindingFlags.SYNC_CREATE)
+            # widget._binding = widget.bind_property("active", item, "include", GObject.BindingFlags.SYNC_CREATE)
+            # item.set_include(widget.get_active())
+            return
+        widget = list_item.get_child()
+        item = list_item.get_item().get_item()
         content = item.get_value(index)
-        label.set_text(content)
+        widget.set_text(content)
+
+    def on_checkbutton_toggled(self, btn, list_item):
+        item = list_item.get_item().get_item()
+        item.set_include(btn.get_active())
 
     def column_row_selector(self, categories_list):
         box2 = Gtk.Box(margin_end=4, margin_start=6, margin_top=4, margin_bottom=4, spacing=6)
