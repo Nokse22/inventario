@@ -35,6 +35,17 @@ import time
 import string
 import webbrowser
 
+class ListString(GObject.Object):
+    __gtype_name__ = 'ListString'
+
+    def __init__(self, name):
+        super().__init__()
+        self._name = name
+
+    @GObject.Property(type=str)
+    def name(self):
+        return self._name
+
 class ProductProduction(GObject.Object):
     __gtype_name__ = "ProductProduction"
 
@@ -815,7 +826,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         detail_just_names = []
         for detail in self.details_names:
             detail_just_names.append(detail[0])
-        self.search_selector = Gtk.DropDown.new_from_strings(detail_just_names)
+        self.search_selector = self.new_drop_down_from_strings(detail_just_names)
         self.search_selector.set_selected(2)
         self.search_bar_box = Gtk.FlowBox(margin_start=4, margin_end=4, margin_bottom=4,
                 selection_mode=Gtk.SelectionMode.NONE)
@@ -1010,8 +1021,8 @@ class InventarioWindow(Adw.ApplicationWindow):
         search_entry.connect("changed", self.entry_text_inserted)
         for detail in self.details_names:
             detail_just_names.append(detail[0])
-        search_selector = Gtk.DropDown.new_from_strings(detail_just_names)
-        search_selector.set_selected(0)
+        search_selector = self.new_drop_down_from_strings(detail_just_names)
+        search_selector.set_enable_search(True)
 
         delete_search_button = Gtk.Button(icon_name="edit-delete-symbolic",
                 css_classes=["error"])
@@ -1831,9 +1842,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         col1.props.expand = True
         column_view.append_column(col1)
 
-    def show_edit_product_dialog(self):
-        print("show_edit_product_dialog")
-
     def update_sidebar_item_info(self):
         print("update item")
         item_index = self.selected_item
@@ -2026,10 +2034,10 @@ class InventarioWindow(Adw.ApplicationWindow):
                 box2.append(Gtk.Label(label=self.get_formatted_date(), hexpand=True, margin_top=4,
                         margin_bottom=4, xalign=0, name=self.product_details_names[i][2]))
             elif self.product_details_names[i][2] == "cat":
-                drop_down = Gtk.DropDown.new_from_strings(self.products_categories)
+                drop_down = self.new_drop_down_from_strings(self.products_categories)
                 drop_down.set_name(name=self.product_details_names[i][2])
                 #drop_down.set_size_request(100, 0)
-                #drop_down.set_enable_search(True)
+                drop_down.set_enable_search(False)
                 drop_down.set_margin_top(4)
                 drop_down.set_margin_bottom(4)
                 drop_down.set_selected(self.find_index(self.products_categories, value))
@@ -2047,7 +2055,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 spin_button.set_adjustment(Gtk.Adjustment(step_increment=0.1, lower=0, value=0, upper=100000000))
                 number, unit = self.split_string_with_unit(value)
                 spin_button.set_value(float(number))
-                drop_down = Gtk.DropDown.new_from_strings(self.units_of_measure)
+                drop_down = self.new_drop_down_from_strings(self.units_of_measure)
                 drop_down.set_size_request(100, 0)
                 drop_down.set_enable_search(True)
                 drop_down.set_margin_start(6)
@@ -2168,20 +2176,12 @@ class InventarioWindow(Adw.ApplicationWindow):
                 box2.append(Gtk.Label(label=self.get_formatted_date(), hexpand=True, margin_top=4,
                         margin_bottom=4, xalign=0, name=self.details_names[i][2]))
             elif self.details_names[i][2] == "cat":
-                drop_down = Gtk.DropDown.new_from_strings(self.items_categories)
+                drop_down = self.new_drop_down_from_strings(self.items_categories)
                 drop_down.set_name(name=self.details_names[i][2])
-                #drop_down.set_size_request(100, 0)
-                #drop_down.set_enable_search(True)
                 drop_down.set_margin_top(4)
                 drop_down.set_margin_bottom(4)
                 drop_down.set_selected(self.find_index(self.items_categories, value))
-
-                # category_drop_down = Gtk.ComboBoxText(margin_top=4, margin_bottom=4,margin_end=4,
-                #         name=self.details_names[i][2])
-                # for category in self.items_categories:
-                #     category_drop_down.append_text(category)
                 box2.append(drop_down)
-                #category_drop_down.set_active(self.find_index(self.items_categories, value))
 
             elif self.details_names[i][2] == "value":
                 spin_button = Gtk.SpinButton(climb_rate=1, digits=2, hexpand=True, margin_top=4, margin_bottom=4)
@@ -2189,7 +2189,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 spin_button.set_adjustment(Gtk.Adjustment(step_increment=0.1, lower=0, value=0, upper=100000000))
                 number, unit = self.split_string_with_unit(value)
                 spin_button.set_value(float(number))
-                drop_down = Gtk.DropDown.new_from_strings(self.units_of_measure)
+                drop_down = self.new_drop_down_from_strings(self.units_of_measure)
                 drop_down.set_size_request(100, 0)
                 drop_down.set_enable_search(True)
                 drop_down.set_margin_start(6)
@@ -2489,7 +2489,8 @@ class InventarioWindow(Adw.ApplicationWindow):
                 spin_button = Gtk.SpinButton(climb_rate=1, digits=2, hexpand=True, margin_end=4, margin_top=4, margin_bottom=4)
                 spin_button.set_adjustment(Gtk.Adjustment(step_increment=0.01, lower=0, value=0, upper=100000000))
 
-                drop_down = Gtk.DropDown.new_from_strings(self.units_of_measure)
+
+                drop_down = self.new_drop_down_from_strings(self.units_of_measure)
                 drop_down.set_size_request(100, 0)
                 drop_down.set_enable_search(True)
                 drop_down.set_margin_start(6)
@@ -2520,7 +2521,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         box7.append(label)
         box7.append(add_custom_info_button)
 
-        possible_parts_list = Gtk.StringList()
+        possible_parts_list = []
 
         for item in self.model:
             item_name_in_list = str(item.item_value or "") + " " + str(item.item_name or "") + " " + str(item.item_package or "")
@@ -2548,8 +2549,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         box2 = Gtk.Box(margin_end=4, margin_start=6, margin_top=4, margin_bottom=4, spacing=6)
         list_box.append(box2)
         name = "Custom info"
-        part_drop_down = Gtk.DropDown()
-        part_drop_down.set_model(parts_list)
+        part_drop_down = self.new_drop_down_from_strings(parts_list)
         part_drop_down.set_enable_search(True)
         part_drop_down.set_hexpand(True)
         box2.append(part_drop_down)
@@ -2675,7 +2675,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 spin_button = Gtk.SpinButton(climb_rate=1, digits=2, hexpand=True, margin_end=4, margin_top=4, margin_bottom=4)
                 spin_button.set_adjustment(Gtk.Adjustment(step_increment=0.01, lower=0, value=0, upper=100000000))
 
-                drop_down = Gtk.DropDown.new_from_strings(self.units_of_measure)
+                drop_down = self.new_drop_down_from_strings(self.units_of_measure)
                 drop_down.set_size_request(100, 0)
                 drop_down.set_enable_search(True)
                 drop_down.set_margin_start(6)
@@ -3356,7 +3356,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         tree_model = Gtk.TreeListModel.new(import_model, False, True, self.model_func)
         tree_sorter = Gtk.TreeListRowSorter.new(import_cv.get_sorter())
 
-        selection_model = Gtk.SingleSelection.new(model=tree_model)
+        selection_model = Gtk.NoSelection.new(model=tree_model)
         selection_model.connect("selection-changed", self.on_selection_changed)
         import_cv.set_model(selection_model)
 
@@ -3384,7 +3384,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             if row_lenght > max_row_lenght:
                 max_row_lenght = row_lenght
 
-        possible_categories_list = Gtk.StringList()
+        possible_categories_list = [] # Gtk.StringList()
         possible_categories_list.append("DO NOT INCLUDE")
 
         for detail in self.details_names:
@@ -3447,16 +3447,18 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     def column_row_selector(self, categories_list):
         box2 = Gtk.Box(margin_end=4, margin_start=6, margin_top=4, margin_bottom=4, spacing=6)
-        categories_drop_down = Gtk.DropDown()
-        categories_drop_down.set_model(categories_list)
-        categories_drop_down.set_enable_search(True)
-        categories_drop_down.set_hexpand(True)
+        categories_drop_down = self.new_drop_down_from_strings(categories_list)
         box2.append(categories_drop_down)
         box2.append(Gtk.Entry(placeholder_text=_("Value"),hexpand=True))
         delete_button = Gtk.Button(icon_name="user-trash-symbolic")
         #delete_button.connect("clicked", self.delete_custom_item_row, list_box)
         box2.append(delete_button)
         return box2
+
+    def import_drop_down_change_name(self, drop_down, selected):
+        print("activate")
+        print(drop_down)
+        print(selected)
 
     def on_import_file_selected(self, dialog, response):
         if response == Gtk.ResponseType.ACCEPT:
@@ -3482,14 +3484,11 @@ class InventarioWindow(Adw.ApplicationWindow):
         dialog.connect("response", self.on_import_file_selected)
 
     def read_csv(self, file_path):
-        print("reading csv")
-
         try:
             open(file_path, 'r').read()
         except Exception as e:
             self.send_toast("Error reading csv file:" + str(e))
             return 0
-
         with open(file_path, 'r') as file:
             file_content = file.read()
             return file_content
@@ -3498,8 +3497,66 @@ class InventarioWindow(Adw.ApplicationWindow):
         if not self.settings.get_boolean("automatic-save"):
             return 0
 
-        print("save")
         path = self.settings.get_string("last-inventory-path")
         self.save_inventory_file(path)
-
         return 1
+
+    def new_drop_down_from_strings(self, strings):
+        model_widget = Gio.ListStore(item_type=ListString)
+        sort_model_widget  = Gtk.SortListModel(model=model_widget)
+        filter_model_widget = Gtk.FilterListModel(model=sort_model_widget)
+        custom_filter_model = Gtk.CustomFilter.new() #self._do_filter_widget_view, filter_model_widget
+        filter_model_widget.set_filter(custom_filter_model)
+
+        for string in strings:
+            model_widget.append(ListString(string))
+
+        factory_widget = Gtk.SignalListItemFactory()
+        factory_widget.connect("setup", self._on_factory_widget_setup)
+        factory_widget.connect("bind", self._on_factory_widget_bind)
+
+        ddwdg = Gtk.DropDown(model=filter_model_widget, factory=factory_widget)
+        ddwdg.set_enable_search(True)
+        #ddwdg.connect("notify::selected-item", self._on_selected_widget)
+
+        search_entry_widget = self._get_search_entry_widget(ddwdg)
+        custom_filter_model.set_filter_func(self._do_filter_drop_down, filter_model_widget, search_entry_widget)
+        search_entry_widget.connect('search-changed', self._on_search_drop_down_changed, custom_filter_model)
+
+        return ddwdg
+
+    def _get_search_entry_widget(self, dropdown):
+        popover = dropdown.get_last_child()
+        box = popover.get_child()
+        box2 = box.get_first_child()
+        search_entry = box2.get_first_child() # Gtk.SearchEntry
+        return search_entry
+
+    def _on_factory_widget_setup(self, factory, list_item):
+        box = Gtk.Box(spacing=6, orientation=Gtk.Orientation.HORIZONTAL)
+        label = Gtk.Label()
+        box.append(label)
+        list_item.set_child(box)
+
+    def _on_factory_widget_bind(self, factory, list_item):
+        box = list_item.get_child()
+        label = box.get_first_child()
+        widget = list_item.get_item()
+        label.set_text(widget.name)
+
+    def _on_selected_widget(self, dropdown, data):
+        widget = dropdown.get_selected_item()
+
+        name = widget.name
+        obj = eval(name)
+        a = set(dir(obj))
+        b = set(dir(Gtk.Widget))
+        c = a - b
+        for item in sorted(list(c)):
+            self.model_method.append(Method(name=item))
+
+    def _on_search_drop_down_changed(self, search_entry, filter_model):
+        filter_model.changed(Gtk.FilterChange.DIFFERENT)
+
+    def _do_filter_drop_down(self, item, filter_list_model, search_entry):
+        return search_entry.get_text().upper() in item.name.upper()
