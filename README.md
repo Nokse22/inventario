@@ -3,7 +3,6 @@
 # Inventario 
   [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
   [![made-with-python](https://img.shields.io/badge/Made%20with-Python-ff7b3f.svg)](https://www.python.org/)
-  [![Generic badge](https://img.shields.io/badge/Version-v0.1.0-green.svg)](https://shields.io/)
   [![Downloads](https://img.shields.io/badge/dynamic/json?color=brightgreen&label=Flathub%20Downloads&query=%24.installs_total&url=https%3A%2F%2Fflathub.org%2Fapi%2Fv2%2Fstats%2Fio.github.nokse22.inventario)](https://flathub.org/apps/details/io.github.nokse22.inventario)
   
   <p>
@@ -11,16 +10,17 @@
   It's still under development, it's not ready for use.
   </p>
 
-  <details><summary><h2>Click here for screenshots 🖼️</h2></summary>
+<img src="data/resources/Screenshot 3.png"/>
+  <details><summary><h2>Click here for more screenshots</h2></summary>
   <div align="center">
-  <img src="data/resources/Screenshot 3.png"/>
+  
   <img src="data/resources/Screenshot 4.png"/>
   <img src="data/resources/Screenshot 5.png"/>
   <img src="data/resources/Screenshot 6.png"/>
   </div>
   </details>
 
-## Feature ideas:
+## Feature ideas
 Not all features will be implemented, it's just a list of ideas
 - [ ] saving inventory in a file
     - [x] saving items/parts list
@@ -74,7 +74,7 @@ Not all features will be implemented, it's just a list of ideas
 - [ ] barcode scanning
 - [ ] bill/invoice generation
 - [ ] threading for loading files
-
+      
 ## Installation
 
 ### From source
@@ -85,6 +85,12 @@ You just need to clone the repository
 git clone https://github.com/Nokse22/inventario.git
 ```
 
-I'm using the latest version of Adwaita ( > 1.4.11) to be able to use Adw.NavigationSplitView that at the time is included only in Gnome Builder Nightly.
-
 Open the project in GNOME Builder and click "Run Project".
+
+### From latest CI build
+
+Go to [actions](https://github.com/Nokse22/inventario/actions), select the latest build and download the `io.github.nokse22.inventario-x86_64.zip` file, extract it and install the app with
+
+```sh
+flatpak install io.github.nokse22.inventario.flatpak
+```
