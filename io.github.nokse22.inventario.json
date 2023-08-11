@@ -32,7 +32,8 @@
             "sources" : [
                 {
                     "type" : "git",
-                    "url" : "https://github.com/nokse22/inventario"
+                    "url" : "https://github.com/nokse22/inventario.git",
+                    "branch": "main"
                 }
             ]
         }
