@@ -41,7 +41,7 @@ Not all features will be implemented, it's just a list of ideas
     - [x] datasheet button
     - [x] product info
     - [x] product parts
-    - [ ] more info
+    - [ ] product parts management 
 - [x] sorting
   - [x] alphabetical sorting
   - [x] numerical sorting
@@ -59,13 +59,15 @@ Not all features will be implemented, it's just a list of ideas
   - [ ] parts binding
   - [ ] adding new parts
   - [ ] in production and progress tracking
+  - [ ] search
 - [x] custom info for every item with saving/loading from file
 - [x] triple pane layout
 - [x] link to buy from website
 - [x] autosave
+- [x] drop down with search
 - [ ] export to CSV or other formats
 - [ ] import from CSV or JSON
-- [ ] dashboard with customizable widgets
+- [ ] dashboard
 - [x] low stock
 - [x] out of stock
 - [x] data sheet file/URL linking
