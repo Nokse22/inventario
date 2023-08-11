@@ -24,6 +24,7 @@
         "*.a"
     ],
     "modules" : [
+    	"libadwaita.json",
         {
             "name" : "inventario",
             "builddir" : true,
@@ -31,8 +32,7 @@
             "sources" : [
                 {
                     "type" : "git",
-                    "url" : "https://github.com/nokse22/inventario",
-                    "branch": "main"
+                    "url" : "https://github.com/nokse22/inventario"
                 }
             ]
         }
