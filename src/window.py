@@ -1046,7 +1046,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             entry.remove_css_class("success")
 
     def filter_rows(self, btn):
-        print("filter rows")
+        # print("filter rows")
         self.filter_parameters = []
         for detail in self.details_names:
             self.filter_parameters.append(["", detail[1]])
@@ -1134,7 +1134,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     def on_window_activate(self, window):
         # Function to be executed when the window is activated
-        print("Window activated!")
+        # print("Window activated!")
         # Call the function you want to execute here
         self.my_custom_function()
 
@@ -1158,7 +1158,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.read_inventory_file(path)
 
     def on_selection_changed(self, selection_model, pos, row):
-        print("selection changed")
+        # print("selection changed")
         if self.last_page == self.items_index:
             self.selected_item = selection_model.get_selection().get_maximum()
             self.update_sidebar_item_info()
@@ -1177,8 +1177,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         elif self.last_page == self.out_of_stock_index:
             self.selected_item = selection_model.get_selection().get_maximum()
             self.update_sidebar_item_info()
-
-        print("selection changed")
 
     def read_inventory_file(self, inventory_path):
         self.model.remove_all()
@@ -1644,7 +1642,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.search_button_toggle.set_icon_name("pan-down-symbolic")
 
     def on_add_stock_to_item_button_clicked(self, btn):
-        print("on_add_stock_to_item_button_clicked")
+        # print("on_add_stock_to_item_button_clicked")
         item_index = self.selected_item
         if item_index < len(self.model):
             item = self.model[item_index]
@@ -1829,7 +1827,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 text = "..."
             box.append(Gtk.Label(ellipsize=3, label=text, xalign=1, hexpand=True, halign=Gtk.Align.FILL))
             self.sidebar_product_info_list_box.append(box)
-        print("updated product info")
+        # print("updated product info")
 
     def add_part_column_view_column(self, detail_name, detail_call, column_view):
         factory = Gtk.SignalListItemFactory()
@@ -1843,7 +1841,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         column_view.append_column(col1)
 
     def update_sidebar_item_info(self):
-        print("update item")
+        # print("update item")
         item_index = self.selected_item
 
         info_page_status_page = Adw.StatusPage(title="Info Page",
@@ -1952,10 +1950,10 @@ class InventarioWindow(Adw.ApplicationWindow):
                 text = "..."
             box.append(Gtk.Label(ellipsize=3, label=text, xalign=1, hexpand=True, halign=Gtk.Align.FILL))
             self.sidebar_item_info_list_box.append(box)
-        print("updated item info")
+        # print("updated item info")
 
     def on_column_view_activated(self, cv, row_index):
-        print("column view activated")
+        # print("column view activated")
         if self.last_page == self.items_index:
             self.selected_item = row_index
             self.show_edit_item_dialog()
@@ -1969,7 +1967,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.update_sidebar_product_info()
 
     def show_edit_product_dialog(self, btn=None):
-        print("show_edit_product_dialog")
+        # print("show_edit_product_dialog")
         product_index = self.selected_product
         if product_index < len(self.products_model):
             product = self.products_selection_model.get_item(self.selected_product).get_item()
@@ -2076,7 +2074,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         edit_product_window.present()
 
     def edit_existing_product(self, btn, list_box, product, window):
-        print("edit_existing_product")
+        # print("edit_existing_product")
         for i in range(len(self.product_details_names)):
             value_widget_row = list_box.get_row_at_index(i)
 
@@ -2111,7 +2109,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         window.destroy()
 
     def show_edit_item_dialog(self, btn=None):
-        print("show_edit_item_dialog")
+        # print("show_edit_item_dialog")
         item_index = self.selected_item
         if item_index < len(self.model):
             item = self.selection_model.get_item(self.selected_item).get_item()
@@ -2235,7 +2233,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         return input_string, "  "
 
     def edit_existing_item(self, btn, list_box, item, window):
-        print("edit_existing_item")
+        # print("edit_existing_item")
         for i in range(len(self.details_names)):
             value_widget_row = list_box.get_row_at_index(i)
 
@@ -2308,7 +2306,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         column_view.append_column(col)
 
     def scroll_to_the_top(self, change, data):
-        print("scroll")
+        # print("scroll")
         self.content_scrolled_window.get_vadjustment().set_value(0)
 
     def sort_func(self, obj_1, obj_2, detail_call_and_type):
@@ -2339,7 +2337,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             return 1
 
     def show_items(self):
-        print("show items")
+        # print("show items")
         self.split_view.set_collapsed(False)
         self.content_headerbar.set_show_title_buttons(False)
         self.search_button_toggle.set_visible(True)
@@ -2357,9 +2355,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.cv.get_model().select_item(self.selected_item, True)
         self.row_filter.changed(Gtk.FilterChange.DIFFERENT)
         self.selected_item = self.selection_model.get_selection().get_maximum()
-        print("items shown")
         self.update_sidebar_item_info()
-        print("update called")
 
     def _on_factory_setup(self, factory, list_item, detail_type=None):
         if detail_type == "progress":
@@ -2432,7 +2428,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.add_new_product_dialog()
 
     def add_new_product_dialog(self, arg=None):
-        print("add_new_product_dialog")
+        # print("add_new_product_dialog")
         add_product_window = Adw.Window(resizable=True)
         add_product_window.set_title("Add product")
 
@@ -2797,7 +2793,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.navigation_select_page(selected_row.get_index())
 
     def show_products(self):
-        print("show products")
+        # print("show products")
         self.split_view.set_collapsed(False)
         self.content_headerbar.set_show_title_buttons(False)
         self.column_visibility_button.set_visible(False)
@@ -2819,7 +2815,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.update_sidebar_product_info()
 
     def show_invoice(self, arg=None):
-        print("show invoices")
+        # print("show invoices")
         self.content_headerbar.set_show_title_buttons(True)
         self.split_view.set_collapsed(True)
         self.search_button_toggle.set_visible(False)
@@ -2914,7 +2910,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         #make_invoice_box.append(items_scrolled_window)
 
     def navigation_select_page(self, index):
-        print("navigation select")
+        # print("navigation select")
         selected_row = self.sidebar_navigation_listBox.get_row_at_index(index)
         self.sidebar_navigation_listBox.select_row(selected_row)
 
@@ -2947,7 +2943,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.delete_filter_rows()
 
     def show_production(self):
-        print("show_production")
+        # print("show_production")
         self.split_view.set_collapsed(False)
         self.content_headerbar.set_show_title_buttons(False)
         self.search_button_toggle.set_visible(False)
@@ -3456,7 +3452,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         return box2
 
     def import_drop_down_change_name(self, drop_down, selected):
-        print("activate")
+        # print("activate")
         print(drop_down)
         print(selected)
 
