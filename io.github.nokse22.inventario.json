@@ -30,8 +30,9 @@
             "buildsystem" : "meson",
             "sources" : [
                 {
-                    "type" : "dir",
-                    "url" : "."
+                    "type" : "git",
+                    "url" : "https://github.com/vixalien/muzika",
+                    "branch": "main"
                 }
             ]
         }
