@@ -43,21 +43,24 @@ class InventarioApplication(Adw.Application):
 
         css = '''
         .electronics{
-            color: #f6f5f4;
+            /* color: #f6f5f4; */
+            color: #1c71d8;
             font-weight: bold;
-            background-color: #1c71d8;
+            /* background-color: #1c71d8; */
             border-radius: 4px;
         }
         .mechanical{
-            color: #f6f5f4;
+            /* color: #f6f5f4; */
+            color: #26a269;
             font-weight: bold;
-            background-color: #26a269;
+            /* background-color: #26a269; */
             border-radius: 4px;
         }
         .consumable{
-            color: #f6f5f4;
+            /* color: #f6f5f4; */
+            color: #b5835a;
             font-weight: bold;
-            background-color: #b5835a;
+            /* background-color: #b5835a; */
             border-radius: 4px;
         }
         '''

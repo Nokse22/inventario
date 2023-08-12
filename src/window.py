@@ -918,7 +918,7 @@ class InventarioWindow(Adw.ApplicationWindow):
             self.filter_parameters.append(["", detail[1]])
 
         # Items column view
-        self.cv = Gtk.ColumnView(single_click_activate=False, reorderable=True, css_classes=["flat"])
+        self.cv = Gtk.ColumnView(single_click_activate=False, reorderable=True, css_classes=["flat", "data-table"])
 
         # ListStore -> FilterListModel -> TreeListModel -> SortListModel -> SingleSelection
 
@@ -955,7 +955,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         self.products_model = Gio.ListStore(item_type=Product)
 
-        self.products_cv = Gtk.ColumnView(single_click_activate=False, reorderable=True, css_classes=["flat"])
+        self.products_cv = Gtk.ColumnView(single_click_activate=False, reorderable=True, css_classes=["flat", "data-table"])
 
         # ListStore -> FilterListModel -> TreeListModel -> SortListModel -> SingleSelection
 
@@ -968,7 +968,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.products_cv.set_show_row_separators(self.settings.get_boolean("enable-rows-separators"))
 
         self.products_tree_model = Gtk.TreeListModel.new(self.products_tree_model_filter, False, True, self.model_func)
-        self.products_tree_sorter = Gtk.TreeListRowSorter.new(self.cv.get_sorter())
+        self.products_tree_sorter = Gtk.TreeListRowSorter.new(self.products_cv.get_sorter())
         self.products_sorter_model = Gtk.SortListModel(model=self.products_tree_model, sorter=self.products_tree_sorter)
 
         self.products_selection_model = Gtk.SingleSelection.new(model=self.products_sorter_model)
@@ -994,8 +994,6 @@ class InventarioWindow(Adw.ApplicationWindow):
         products_column_visibility_popover.set_child(products_column_visibility_popover_box)
 
         self.action_bar.pack_end(self.products_column_visibility_button)
-
-
 
     def column_visibility_check_button(self, column, array):
         title = column.get_title()
@@ -2298,15 +2296,16 @@ class InventarioWindow(Adw.ApplicationWindow):
         factory.connect("unbind", self._on_factory_unbind, detail_call)
         factory.connect("teardown", self._on_factory_teardown)
 
+        print(f"{column_name} {detail_type}")
+
         col = Gtk.ColumnViewColumn(title=column_name, factory=factory, resizable=True)
         sorter = Gtk.CustomSorter.new(self.sort_func, user_data=[detail_call, detail_type])
-        sorter.connect("changed", self.scroll_to_the_top)
+        #sorter.connect("changed", self.scroll_to_the_top)
         col.set_sorter(sorter)
-        col.props.expand = True
+        #col.props.expand = True
         column_view.append_column(col)
 
     def scroll_to_the_top(self, change, data):
-        # print("scroll")
         self.content_scrolled_window.get_vadjustment().set_value(0)
 
     def sort_func(self, obj_1, obj_2, detail_call_and_type):
@@ -2330,7 +2329,14 @@ class InventarioWindow(Adw.ApplicationWindow):
             return 1
 
         else:
-            if str(obj_1_detail).lower() < str(obj_2_detail).lower():
+            print(str(obj_1_detail).lower())
+            if obj_1_detail == None and obj_2_detail == None:
+                return 1
+            elif obj_1_detail == None:
+                return 0
+            elif obj_2_detail == None:
+                return -1
+            elif str(obj_1_detail).lower() < str(obj_2_detail).lower():
                 return -1
             elif str(obj_1_detail).lower() == str(obj_2_detail).lower():
                 return 0
