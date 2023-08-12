@@ -727,6 +727,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.split_view.set_sidebar_width_fraction(0.7)
 
         self.set_content(self.split_view)
+        self.add_css_class("devel")
 
         sidebar_page = Adw.NavigationPage()
         content_page = Adw.NavigationPage()
@@ -905,10 +906,10 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.item_info_revealer = Gtk.Revealer(transition_type=1, height_request=300)
         self.right_pane_content_box.append(self.item_info_revealer)
 
-        self.info_scrolled_window_product_custom = Gtk.ScrolledWindow(vexpand=True)
-        self.info_scrolled_window_product_custom.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.info_panel = Gtk.ScrolledWindow(vexpand=True)
+        self.info_panel.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
 
-        self.right_pane_content_box.append(self.info_scrolled_window_product_custom)
+        self.right_pane_content_box.append(self.info_panel)
         self.model = Gio.ListStore(item_type=Item)
 
         for i in range(len(self.sidebar_options)):
@@ -1720,7 +1721,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 description="There are no products to display")
 
         if len(self.products_model) == 0 or product_index == None:
-            self.info_scrolled_window_product_custom.set_child(info_page_status_page)
+            self.info_panel.set_child(info_page_status_page)
             return
         if product_index > len(self.products_model):
             product_index = 0
@@ -1729,6 +1730,8 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.sidebar_product_info_list_box = Gtk.ListBox(show_separators=True, selection_mode=0,
                 margin_start=6, margin_end=6, vexpand=True, hexpand=True)#, width_request=300)
         box1 = Gtk.Box(orientation=1, hexpand=True)
+        box_down = Gtk.Box(orientation=1, hexpand=True)
+        box_homogeneous = Gtk.Box(orientation=1, hexpand=True, homogeneous=True)
 
         if self.products_selection_model.get_item(product_index) != None:
             product = self.products_selection_model.get_item(product_index).get_item()
@@ -1751,9 +1754,9 @@ class InventarioWindow(Adw.ApplicationWindow):
         box1.append(box5)
         #box1.append(self.sidebar_product_info_list_box)
 
-        product_id=self.products_model[product_index].product_id
+        product_id = self.products_model[product_index].product_id
 
-        add_this_button = Gtk.Button(hexpand=True, label="Make One", css_classes=["success"])
+        add_this_button = Gtk.Button(hexpand=True, label="Produce", css_classes=["success"])
         remove_this_button = Gtk.Button(hexpand=True, label="-1", css_classes=["error"])
         edit_button = Gtk.Button(icon_name="document-edit-symbolic", hexpand=True)
 
@@ -1766,7 +1769,9 @@ class InventarioWindow(Adw.ApplicationWindow):
         #add_this_button.connect("clicked", self.on_add_stock_to_product_button_clicked)
         #remove_this_button.connect("clicked", self.on_remove_one_product_button_clicked)
 
-        self.info_scrolled_window_product_custom.set_child(box1)
+        box_homogeneous.append(box1)
+        box_homogeneous.append(box_down)
+        self.info_panel.set_child(box_homogeneous)
 
         self.sidebar_product_parts_list_box = Gtk.ListBox(show_separators=True, selection_mode=0,
                 margin_start=6, margin_end=6, vexpand=True, hexpand=True)#, width_request=300)
@@ -1794,10 +1799,10 @@ class InventarioWindow(Adw.ApplicationWindow):
         middle_title_and_buttons_box.append(add_part_button)
 
         box1.append(Gtk.Separator())
-        box1.append(middle_title_and_buttons_box)
-        box1.append(Gtk.Separator())
-        box1.append(scrolled_window_product_parts)
-        box1.append(bottom_buttons_box)
+        box_down.append(middle_title_and_buttons_box)
+        box_down.append(Gtk.Separator())
+        box_down.append(scrolled_window_product_parts)
+        box_down.append(bottom_buttons_box)
 
         for i in range(len(product.product_parts_list)):
             part = product.product_parts_list[i]
@@ -1841,14 +1846,14 @@ class InventarioWindow(Adw.ApplicationWindow):
     def update_sidebar_item_info(self):
         # print("update item")
         item_index = self.selected_item
+        print(item_index)
 
         info_page_status_page = Adw.StatusPage(title="Info Page",
                 icon_name="view-list-bullet-symbolic", hexpand=True, vexpand=True,
                 description="There are no items to display")
 
         if len(self.model) == 0:
-            self.info_scrolled_window_product_custom.set_child(info_page_status_page)
-            print(1)
+            self.info_panel.set_child(info_page_status_page)
             return
 
         self.sidebar_item_info_list_box = Gtk.ListBox(show_separators=True, selection_mode=0,
@@ -1858,7 +1863,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         if self.selection_model.get_item(item_index) != None:
             item = self.selection_model.get_item(item_index).get_item()
         else:
-            print(2)
+            self.info_panel.set_child(info_page_status_page)
             return
 
         sidebar_scrolled_window_item_info = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
@@ -1921,7 +1926,7 @@ class InventarioWindow(Adw.ApplicationWindow):
 
         box1.append(bottom_buttons_box)
 
-        self.info_scrolled_window_product_custom.set_child(box1)
+        self.info_panel.set_child(box1)
 
         for info in item.custom_values_list():
             box6 = Gtk.Box()
@@ -2302,7 +2307,7 @@ class InventarioWindow(Adw.ApplicationWindow):
         sorter = Gtk.CustomSorter.new(self.sort_func, user_data=[detail_call, detail_type])
         #sorter.connect("changed", self.scroll_to_the_top)
         col.set_sorter(sorter)
-        #col.props.expand = True
+        col.props.expand = True
         column_view.append_column(col)
 
     def scroll_to_the_top(self, change, data):
@@ -2804,8 +2809,8 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.content_headerbar.set_show_title_buttons(False)
         self.column_visibility_button.set_visible(False)
         self.products_column_visibility_button.set_visible(True)
-        self.search_button_toggle.set_visible(False)
-        self.search_revealer.set_reveal_child(False)
+        self.search_button_toggle.set_visible(True)
+        self.search_revealer.set_reveal_child(True)
         self.item_info_revealer.set_reveal_child(False)
         self.products_box = Gtk.Box(margin_start=10, margin_top=10, margin_bottom=10, margin_end=10)
         #self.content_scrolled_window.set_child(self.products_box)
@@ -2848,7 +2853,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 icon_name="info-symbolic", hexpand=True, vexpand=True,
                 description="Invoice info page")
 
-        self.info_scrolled_window_product_custom.set_child(info_page_status_page)
+        self.info_panel.set_child(info_page_status_page)
 
     def make_new_invoice(self, btn):
         make_invoice_box = Gtk.Box(homogeneous=True)
@@ -2970,7 +2975,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 icon_name="build-alt-symbolic", hexpand=True, vexpand=True,
                 description="Production is still not supported")
 
-        self.info_scrolled_window_product_custom.set_child(info_page_status_page)
+        self.info_panel.set_child(info_page_status_page)
         self.content_scrolled_window.set_child(wip_status_page)
 
         production_model = Gio.ListStore(item_type=ProductProduction)
@@ -3092,7 +3097,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                 icon_name="info-symbolic", hexpand=True, vexpand=True,
                 description="Dashboard info page")
 
-        self.info_scrolled_window_product_custom.set_child(info_page_status_page)
+        self.info_panel.set_child(info_page_status_page)
 
         items_widget = self.dashboard_simple_widget("Items", len(self.model))
         items_widget.connect("clicked", self.on_go_items_button_clicked)
@@ -3562,3 +3567,4 @@ class InventarioWindow(Adw.ApplicationWindow):
 
     def _do_filter_drop_down(self, item, filter_list_model, search_entry):
         return search_entry.get_text().upper() in item.name.upper()
+
