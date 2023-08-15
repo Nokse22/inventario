@@ -247,7 +247,6 @@ class Product(GObject.Object):
         self._product_id = None
         self._product_category = None
         self._product_name = None
-        self._product_stock = None
         self._product_package = None
         self._product_cost = None
         self._product_value = None
@@ -257,11 +256,11 @@ class Product(GObject.Object):
         self._product_modification = None
         self._product_seller = None
         self._product_selling_price = None
-        self._product_stock_reserved = None
-        self._product_stock_allocated = None
-        self._product_stock_planned = None
-        self._product_stock_on_order = None
-        self._product_stock_for_sale = None
+        self._product_stock_reserved = 0
+        self._product_stock_allocated = 0
+        self._product_stock_planned = 0
+        self._product_stock_on_order = 0
+        self._product_stock_for_sale = 0
         self._product_storage = None
         self._product_part_number = None
         self._product_revision = None
@@ -302,8 +301,7 @@ class Product(GObject.Object):
 
     @GObject.Property(type=int)
     def product_stock(self):
-        #return self._product_quantity + self._product_stock_reserved + self._product_stock_allocated + self._product_stock_planned + self._product_stock_on_order + self._product_stock_for_sale
-        return self._product_stock
+        return self._product_stock_reserved + self._product_stock_allocated + self._product_stock_planned + self._product_stock_on_order + self._product_stock_for_sale
 
     @GObject.Property(type=str)
     def product_package(self):
@@ -373,6 +371,9 @@ class Product(GObject.Object):
     def set_detail(self, detail_name, value):
         attributes = inspect.getmembers(self, lambda a: not inspect.isroutine(a))
 
+        if detail_name == "product_stock":
+            return
+
         for attr_name, _ in attributes:
             if attr_name == f"_{detail_name}":
                 setattr(self, f"_{detail_name}", value)
@@ -394,7 +395,6 @@ class Item(GObject.Object):
         self._item_id = None
         self._item_category = None
         self._item_name = None
-        self._item_quantity = None
         self._item_package = None
         self._item_cost = None
         self._item_value = None
@@ -403,11 +403,11 @@ class Item(GObject.Object):
         self._item_creation = None
         self._item_modification = None
         self._item_selling_price = None
-        self._item_stock_reserved = None
-        self._item_stock_allocated = None
-        self._item_stock_planned = None
-        self._item_stock_on_order = None
-        self._item_stock_for_sale = None
+        self._item_stock_reserved = 0
+        self._item_stock_allocated = 0
+        self._item_stock_planned = 0
+        self._item_stock_on_order = 0
+        self._item_stock_for_sale = 0
         self._item_storage = None
         self._unit_of_measure = None
         self._item_part_number = None
@@ -443,7 +443,8 @@ class Item(GObject.Object):
 
     @GObject.Property(type=int)
     def item_quantity(self):
-        return self._item_quantity
+        return self._item_stock_reserved + self._item_stock_allocated + self._item_stock_planned + self._item_stock_on_order + self._item_stock_for_sale
+
 
     @GObject.Property(type=str)
     def item_package(self):
@@ -534,6 +535,9 @@ class Item(GObject.Object):
     def set_detail(self, detail_name, value):
         attributes = inspect.getmembers(self, lambda a: not inspect.isroutine(a))
 
+        if detail_name == "item_quantity":
+            return
+
         for attr_name, _ in attributes:
             if attr_name == f"_{detail_name}":
                 setattr(self, f"_{detail_name}", value)
@@ -622,7 +626,7 @@ class InventarioWindow(Adw.ApplicationWindow):
                     ["Category","item_category", "cat"],
                     ["Name","item_name", "str"],
                     ["Description", "item_description", "str"],
-                    ["Stock", "item_quantity", "int"],
+                    ["Stock", "item_quantity", "INT"],
                     ["Low Stock", "item_low_stock", "int"],
                     ["Package", "item_package", "str"],
                     ["Part Number","item_part_number", "str"],
@@ -2163,6 +2167,9 @@ class InventarioWindow(Adw.ApplicationWindow):
                 box2.append(spin_button)
                 if value != None:
                     spin_button.set_value(float(value))
+            elif self.details_names[i][2] == "INT":
+                box2.append(Gtk.Label(label=value, hexpand=True, margin_top=4, margin_bottom=4,
+                        xalign=0, name=self.details_names[i][2]))
             elif self.details_names[i][2] == "cost":
                 spin_button = Gtk.SpinButton(climb_rate=1, digits=2, hexpand=True,
                         margin_top=4, margin_bottom=4, name=self.details_names[i][2])
@@ -2810,10 +2817,8 @@ class InventarioWindow(Adw.ApplicationWindow):
         self.column_visibility_button.set_visible(False)
         self.products_column_visibility_button.set_visible(True)
         self.search_button_toggle.set_visible(True)
-        self.search_revealer.set_reveal_child(True)
         self.item_info_revealer.set_reveal_child(False)
         self.products_box = Gtk.Box(margin_start=10, margin_top=10, margin_bottom=10, margin_end=10)
-        #self.content_scrolled_window.set_child(self.products_box)
 
         self.content_scrolled_window.set_child(None)
         self.content_scrolled_window.set_child(self.products_cv)
