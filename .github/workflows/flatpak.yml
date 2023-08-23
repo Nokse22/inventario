@@ -4,7 +4,7 @@ on:
       - '**/README.md'
     branches: [main]
   pull_request:
-name: CI
+name: Flatpak
 jobs:
   flatpak:
     runs-on: ubuntu-latest
