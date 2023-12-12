@@ -10,6 +10,8 @@
   A Gtk4/Libadwaita application to keep track of your inventory.
   It's still under development, it's not ready for use.
   </p>
+  
+> I have decided to stop the development of this application because I would need to rewrite it from the ground up, because the code become too messy. Maybe I will start again in the future.
 
 <img src="data/resources/Screenshot 3.png"/>
   <details><summary><h2>Click here for more screenshots</h2></summary>
